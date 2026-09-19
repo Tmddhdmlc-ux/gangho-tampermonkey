@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 통합 UI Lite v2.8
+// @name         무협 RPG 통합 UI Lite v2.9
 // @namespace    wuxia-rpg-ui-lite
-// @version      2.8
+// @version      2.9
 // @description  이벤트형 통합 UI + 데미지 + 실적용 스탯 보정 표시 + 저부하 연동
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -19,7 +19,7 @@
      * ROOT ID는 v20을 그대로 사용한다.
      */
     const ROOT_ID = 'wuxia-player-ui-v20';
-    const STYLE_ID = 'wuxia-player-style-v28';
+    const STYLE_ID = 'wuxia-player-style-v29';
 
     const PLAYER_KEY = 'wuxia_rpg_status_v2';
     const TARGET_KEY = 'wuxia_rpg_target_v1';
@@ -2513,6 +2513,42 @@ ${
     }
 
 
+    function resolveMapCurrentNode(map) {
+        const text = String(map?.text || '');
+        const location = normalizePlace(
+            player.location ||
+            map?.current ||
+            ''
+        );
+
+        if (text && location) {
+            const regex = /\{(?:town|faction|dungeon|neutral|hidden):([^}]+)\}/g;
+            let match;
+
+            while ((match = regex.exec(text))) {
+                const label = normalizePlace(match[1]);
+
+                if (
+                    label &&
+                    (
+                        location === label ||
+                        location.includes(label) ||
+                        label.includes(location)
+                    )
+                ) {
+                    return match[1];
+                }
+            }
+        }
+
+        return (
+            map?.currentNode ||
+            map?.current ||
+            ''
+        );
+    }
+
+
     function renderMap() {
         const map =
             player.map ||
@@ -2532,8 +2568,8 @@ ${
         >
             ★
             ${esc(
-                map.current ||
                 player.location ||
+                map.current ||
                 ''
             )}
         </div>
@@ -2554,7 +2590,7 @@ ${
 
 <pre class="map-pre">${mapHTML(
     map.text || '',
-    map.currentNode || ''
+    resolveMapCurrentNode(map)
 )}</pre>
 
 <div class="muted">
