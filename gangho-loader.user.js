@@ -1,11 +1,14 @@
 // ==UserScript==
 // @name         강호기행 GitHub Loader
 // @namespace    gangho-github-loader
-// @version      1.2
-// @description  GitHub의 최신 강호기행 스크립트 6개를 매 새로고침마다 직접 불러와 실행
+// @version      1.3
+// @description  GitHub 최신 강호기행 스크립트 6개를 F5마다 불러오며 실패 시 재시도/캐시 복구
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
+// @grant        GM_xmlhttpRequest
 // @grant        GM_addElement
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @connect      raw.githubusercontent.com
 // @run-at       document-idle
 // ==/UserScript==
@@ -25,116 +28,226 @@
         'wuxia-rpg-handoff.user.js'
     ];
 
-    const LOAD_TIMEOUT =
-        12000;
+    const MAX_RETRIES =
+        3;
 
-    function loadScript(
-        filename
-    ) {
+    const RETRY_DELAY =
+        650;
+
+    function sleep(ms) {
+        return new Promise(
+            resolve =>
+                setTimeout(
+                    resolve,
+                    ms
+                )
+        );
+    }
+
+    function cacheKey(filename) {
+        return (
+            'gangho-cache:' +
+            filename
+        );
+    }
+
+    function fetchOnce(filename) {
         return new Promise(
             (resolve, reject) => {
 
                 const url =
                     BASE +
-                    filename +
-                    '?_gangho=' +
-                    Date.now();
+                    filename;
 
-                let settled =
-                    false;
+                GM_xmlhttpRequest({
+                    method:
+                        'GET',
 
-                let timer =
-                    null;
+                    url,
 
-                let script =
-                    null;
+                    headers: {
+                        'Cache-Control':
+                            'no-cache'
+                    },
 
-                function finish(
-                    error = null
-                ) {
-                    if (settled) {
-                        return;
-                    }
+                    timeout:
+                        12000,
 
-                    settled =
-                        true;
-
-                    clearTimeout(
-                        timer
-                    );
-
-                    script
-                        ?.remove();
-
-                    if (error) {
-                        reject(
-                            error
-                        );
-                    } else {
-                        resolve();
-                    }
-                }
-
-                try {
-                    script =
-                        GM_addElement(
-                            'script',
-                            {
-                                src:
-                                    url,
-
-                                type:
-                                    'text/javascript',
-
-                                async:
-                                    false
-                            }
-                        );
-
-                    script.addEventListener(
-                        'load',
-                        () =>
-                            finish(),
-                        {
-                            once:
-                                true
-                        }
-                    );
-
-                    script.addEventListener(
-                        'error',
-                        () =>
-                            finish(
+                    onload(response) {
+                        if (
+                            response.status >= 200 &&
+                            response.status < 300 &&
+                            response.responseText
+                        ) {
+                            resolve(
+                                response.responseText
+                            );
+                        } else {
+                            reject(
                                 new Error(
                                     filename +
-                                    ' 로드 실패'
+                                    ' HTTP ' +
+                                    response.status
                                 )
-                            ),
-                        {
-                            once:
-                                true
+                            );
                         }
+                    },
+
+                    ontimeout() {
+                        reject(
+                            new Error(
+                                filename +
+                                ' 요청 시간 초과'
+                            )
+                        );
+                    },
+
+                    onerror(error) {
+                        reject(
+                            new Error(
+                                filename +
+                                ' 네트워크 오류' +
+                                (
+                                    error?.statusText
+                                        ? ': ' +
+                                          error.statusText
+                                        : ''
+                                )
+                            )
+                        );
+                    }
+                });
+            }
+        );
+    }
+
+    async function fetchLatest(filename) {
+        let lastError =
+            null;
+
+        for (
+            let attempt = 1;
+            attempt <= MAX_RETRIES;
+            attempt++
+        ) {
+            try {
+                const raw =
+                    await fetchOnce(
+                        filename
                     );
 
-                    timer =
-                        setTimeout(
-                            () =>
-                                finish(
-                                    new Error(
-                                        filename +
-                                        ' 로드 시간 초과'
-                                    )
-                                ),
-                            LOAD_TIMEOUT
-                        );
+                await GM_setValue(
+                    cacheKey(
+                        filename
+                    ),
+                    raw
+                );
 
-                } catch (error) {
-                    finish(
-                        error
+                return {
+                    raw,
+                    source:
+                        'github'
+                };
+
+            } catch (error) {
+                lastError =
+                    error;
+
+                console.warn(
+                    '[강호기행 Loader v1.3] 재시도',
+                    filename,
+                    attempt,
+                    '/',
+                    MAX_RETRIES,
+                    error
+                );
+
+                if (
+                    attempt <
+                    MAX_RETRIES
+                ) {
+                    await sleep(
+                        RETRY_DELAY *
+                        attempt
                     );
                 }
             }
+        }
+
+        const cached =
+            await GM_getValue(
+                cacheKey(
+                    filename
+                ),
+                ''
+            );
+
+        if (cached) {
+            console.warn(
+                '[강호기행 Loader v1.3] GitHub 실패 → 캐시 사용:',
+                filename
+            );
+
+            return {
+                raw:
+                    cached,
+
+                source:
+                    'cache'
+            };
+        }
+
+        throw (
+            lastError ||
+            new Error(
+                filename +
+                ' 로드 실패'
+            )
         );
+    }
+
+    function stripMeta(code) {
+        return String(
+            code ||
+            ''
+        ).replace(
+            /^\s*\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==\s*/m,
+            ''
+        );
+    }
+
+    function executeCode(
+        raw,
+        filename
+    ) {
+        const code =
+            stripMeta(
+                raw
+            );
+
+        const script =
+            GM_addElement(
+                'script',
+                {
+                    type:
+                        'text/javascript',
+
+                    textContent:
+                        code +
+                        '\n//# sourceURL=' +
+                        BASE +
+                        filename
+                }
+            );
+
+        if (!script) {
+            throw new Error(
+                filename +
+                ' 코드 주입 실패'
+            );
+        }
+
+        script.remove();
     }
 
     function showFailure(
@@ -223,7 +336,7 @@
             ?.remove();
 
         console.log(
-            '[강호기행 Loader v1.2] GitHub 최신 스크립트 로딩 시작'
+            '[강호기행 Loader v1.3] 로딩 시작'
         );
 
         for (
@@ -231,17 +344,27 @@
             of SCRIPTS
         ) {
             try {
-                await loadScript(
+                const result =
+                    await fetchLatest(
+                        filename
+                    );
+
+                executeCode(
+                    result.raw,
                     filename
                 );
 
                 console.log(
-                    '[강호기행 Loader v1.2] 실행 완료:',
-                    filename
+                    '[강호기행 Loader v1.3] 실행 완료:',
+                    filename,
+                    '(' +
+                    result.source +
+                    ')'
                 );
+
             } catch (error) {
                 console.error(
-                    '[강호기행 Loader v1.2] 실행 실패:',
+                    '[강호기행 Loader v1.3] 실행 실패:',
                     filename,
                     error
                 );
@@ -254,7 +377,7 @@
         }
 
         console.log(
-            '[강호기행 Loader v1.2] 전체 로딩 완료'
+            '[강호기행 Loader v1.3] 전체 로딩 완료'
         );
     }
 
