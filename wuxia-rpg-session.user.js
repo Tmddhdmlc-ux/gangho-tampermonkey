@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         무협 RPG 세션 컨트롤러 v1.4
+// @name         무협 RPG 세션 컨트롤러 v1.5
 // @namespace    wuxia-rpg-session
-// @version      1.4
-// @description  이벤트형 세션 컨트롤러 - 런처/캐릭터 보관함/백업복구/이름별 파일저장
+// @version      1.5
+// @description  이벤트형 세션 컨트롤러 - 런처 길게눌러 드래그/캐릭터 보관함/백업복구/이름별 파일저장
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
 // @updateURL    https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-session.user.js
@@ -45,6 +45,14 @@
      */
     const PLAYER_POSITION_KEY =
         'wuxia_rpg_panel_position_v2';
+
+
+    /*
+     * 스타트 런처는 통합 상태창과 별도로
+     * 사용자가 옮긴 위치를 기억한다.
+     */
+    const LAUNCHER_POSITION_KEY =
+        'wuxia_rpg_launcher_position_v1';
 
 
     const MAX_BACKUPS =
@@ -1949,6 +1957,15 @@
 
     function getLauncherPosition() {
 
+        const launcherPosition =
+            parse(
+                localStorage.getItem(
+                    LAUNCHER_POSITION_KEY
+                ),
+                null
+            );
+
+
         const playerPosition =
             parse(
                 localStorage.getItem(
@@ -1962,22 +1979,34 @@
         let top;
 
 
-        if (
-            playerPosition &&
+        const savedPosition =
+            launcherPosition &&
             Number.isFinite(
-                playerPosition.left
+                launcherPosition.left
             ) &&
             Number.isFinite(
-                playerPosition.top
+                launcherPosition.top
+            )
+                ? launcherPosition
+                : playerPosition;
+
+
+        if (
+            savedPosition &&
+            Number.isFinite(
+                savedPosition.left
+            ) &&
+            Number.isFinite(
+                savedPosition.top
             )
         ) {
 
             left =
-                playerPosition.left;
+                savedPosition.left;
 
 
             top =
-                playerPosition.top;
+                savedPosition.top;
 
         }
 
@@ -2245,6 +2274,18 @@ html.wuxia-rpg-logged-out
         !important;
 
 
+    cursor:
+        grab !important;
+
+
+    user-select:
+        none !important;
+
+
+    touch-action:
+        none !important;
+
+
     border-bottom:
         1px solid
         rgba(
@@ -2254,6 +2295,32 @@ html.wuxia-rpg-logged-out
             .08
         )
         !important;
+}
+
+
+#${ROOT_ID}.wxs-dragging {
+
+    transition:
+        none !important;
+
+
+    box-shadow:
+        0 18px 50px
+        rgba(
+            0,
+            0,
+            0,
+            .62
+        )
+        !important;
+}
+
+
+#${ROOT_ID}.wxs-dragging
+.wxs-head {
+
+    cursor:
+        grabbing !important;
 }
 
 
@@ -3092,6 +3159,11 @@ html.wuxia-rpg-logged-out
         );
 
 
+        bindLauncherDrag(
+            root
+        );
+
+
         applyLauncherPosition();
 
         updateLauncher();
@@ -3101,6 +3173,399 @@ html.wuxia-rpg-logged-out
     // =========================================================
     // 런처 이벤트
     // =========================================================
+
+    function bindLauncherDrag(
+        root
+    ) {
+
+        const head =
+            root.querySelector(
+                '.wxs-head'
+            );
+
+
+        if (!head) {
+            return;
+        }
+
+
+        const LONG_PRESS_MS =
+            400;
+
+
+        const MOVE_TOLERANCE =
+            8;
+
+
+        let pressTimer =
+            null;
+
+
+        let pointerId =
+            null;
+
+
+        let startX =
+            0;
+
+
+        let startY =
+            0;
+
+
+        let originLeft =
+            0;
+
+
+        let originTop =
+            0;
+
+
+        let dragging =
+            false;
+
+
+        function clearPressTimer() {
+
+            if (
+                pressTimer !==
+                null
+            ) {
+
+                clearTimeout(
+                    pressTimer
+                );
+
+
+                pressTimer =
+                    null;
+            }
+        }
+
+
+        function clampPosition(
+            left,
+            top
+        ) {
+
+            const rect =
+                root.getBoundingClientRect();
+
+
+            const maxLeft =
+                Math.max(
+                    6,
+                    window.innerWidth -
+                    rect.width -
+                    6
+                );
+
+
+            const maxTop =
+                Math.max(
+                    6,
+                    window.innerHeight -
+                    Math.min(
+                        rect.height,
+                        window.innerHeight -
+                        12
+                    ) -
+                    6
+                );
+
+
+            return {
+                left:
+                    Math.max(
+                        6,
+                        Math.min(
+                            left,
+                            maxLeft
+                        )
+                    ),
+
+                top:
+                    Math.max(
+                        6,
+                        Math.min(
+                            top,
+                            maxTop
+                        )
+                    )
+            };
+        }
+
+
+        function applyDragPosition(
+            left,
+            top
+        ) {
+
+            const position =
+                clampPosition(
+                    left,
+                    top
+                );
+
+
+            root.style
+                .setProperty(
+                    '--launcher-left',
+                    `${position.left}px`
+                );
+
+
+            root.style
+                .setProperty(
+                    '--launcher-top',
+                    `${position.top}px`
+                );
+
+
+            return position;
+        }
+
+
+        function finishDrag(
+            event
+        ) {
+
+            clearPressTimer();
+
+
+            if (
+                pointerId ===
+                null
+            ) {
+
+                return;
+            }
+
+
+            if (
+                dragging
+            ) {
+
+                const rect =
+                    root.getBoundingClientRect();
+
+
+                saveJSON(
+                    LAUNCHER_POSITION_KEY,
+                    {
+                        left:
+                            Math.round(
+                                rect.left
+                            ),
+
+                        top:
+                            Math.round(
+                                rect.top
+                            )
+                    }
+                );
+
+
+                event
+                    ?.preventDefault();
+            }
+
+
+            root.classList
+                .remove(
+                    'wxs-dragging'
+                );
+
+
+            try {
+
+                if (
+                    head.hasPointerCapture(
+                        pointerId
+                    )
+                ) {
+
+                    head.releasePointerCapture(
+                        pointerId
+                    );
+                }
+
+            }
+
+            catch (_) {}
+
+
+            pointerId =
+                null;
+
+
+            dragging =
+                false;
+        }
+
+
+        head.addEventListener(
+            'pointerdown',
+            event => {
+
+                if (
+                    event.pointerType ===
+                        'mouse' &&
+                    event.button !==
+                        0
+                ) {
+
+                    return;
+                }
+
+
+                clearPressTimer();
+
+
+                pointerId =
+                    event.pointerId;
+
+
+                startX =
+                    event.clientX;
+
+
+                startY =
+                    event.clientY;
+
+
+                const rect =
+                    root.getBoundingClientRect();
+
+
+                originLeft =
+                    rect.left;
+
+
+                originTop =
+                    rect.top;
+
+
+                try {
+
+                    head.setPointerCapture(
+                        pointerId
+                    );
+
+                }
+
+                catch (_) {}
+
+
+                pressTimer =
+                    setTimeout(
+                        () => {
+
+                            pressTimer =
+                                null;
+
+
+                            dragging =
+                                true;
+
+
+                            root.classList
+                                .add(
+                                    'wxs-dragging'
+                                );
+
+                        },
+                        LONG_PRESS_MS
+                    );
+            }
+        );
+
+
+        head.addEventListener(
+            'pointermove',
+            event => {
+
+                if (
+                    pointerId !==
+                        event.pointerId
+                ) {
+
+                    return;
+                }
+
+
+                const dx =
+                    event.clientX -
+                    startX;
+
+
+                const dy =
+                    event.clientY -
+                    startY;
+
+
+                if (
+                    !dragging
+                ) {
+
+                    if (
+                        Math.hypot(
+                            dx,
+                            dy
+                        ) >
+                        MOVE_TOLERANCE
+                    ) {
+
+                        clearPressTimer();
+                    }
+
+
+                    return;
+                }
+
+
+                event.preventDefault();
+
+
+                applyDragPosition(
+                    originLeft +
+                        dx,
+                    originTop +
+                        dy
+                );
+            }
+        );
+
+
+        head.addEventListener(
+            'pointerup',
+            finishDrag
+        );
+
+
+        head.addEventListener(
+            'pointercancel',
+            finishDrag
+        );
+
+
+        head.addEventListener(
+            'lostpointercapture',
+            event => {
+
+                if (
+                    pointerId ===
+                        event.pointerId
+                ) {
+
+                    finishDrag(
+                        event
+                    );
+                }
+            }
+        );
+    }
+
 
     function bindLauncher(
         root
@@ -4048,7 +4513,7 @@ html.wuxia-rpg-logged-out
 
 
         console.log(
-            '[무협 RPG] 세션 컨트롤러 v1.4 · 이벤트 모드'
+            '[무협 RPG] 세션 컨트롤러 v1.5 · 길게눌러 드래그'
         );
     }
 
