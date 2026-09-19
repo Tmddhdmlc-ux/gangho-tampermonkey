@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 대상 정보창 Lite v2.4
+// @name         무협 RPG 대상 정보창 Lite v2.5
 // @namespace    wuxia-rpg-target-lite
-// @version      2.4
+// @version      2.5
 // @description  이벤트형 대상창 - 다중 적 동시 표시/초상화 드래그/원위치/저부하
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -2187,6 +2187,60 @@ function actionHTML(
         layoutExtraEnemies();
     }
 
+    function renderPublicRelationships() {
+        const list =
+            Array.isArray(
+                target.publicRelationships
+            )
+                ? target.publicRelationships
+                : [];
+
+        if (!list.length) {
+            return target.publicRelationshipVerifiedNone === true
+                ? '<div class="muted">공개 교제/혼인 관계 없음</div>'
+                : '<div class="muted">공개 관계 정보 없음</div>';
+        }
+
+        return list
+            .map(
+                item => {
+                    const type =
+                        item.relationType ||
+                        item.type ||
+                        '관계';
+
+                    const partner =
+                        item.partnerName ||
+                        item.name ||
+                        '신원 불명';
+
+                    const meta = [
+                        item.partnerFaction ||
+                            item.faction ||
+                            '',
+                        item.partnerTitle ||
+                            item.title ||
+                            '',
+                        item.knownRealm ||
+                            item.realm ||
+                            ''
+                    ]
+                    .filter(Boolean)
+                    .join(' · ');
+
+                    return `
+<div class="line">
+    <span>${esc(type)}</span>
+    <b>${esc(partner)}</b>
+</div>
+${meta ? `<div class="muted">${esc(meta)}</div>` : ''}
+`;
+                }
+            )
+            .join('');
+    }
+
+
     function renderFullDetails() {
         const relation =
             target.relation || {};
@@ -2239,6 +2293,11 @@ ${
         )
         : ''
 }
+
+${detail(
+    '공개 교제/혼인',
+    renderPublicRelationships()
+)}
 
 ${detail('무기',weaponHTML)}
 
