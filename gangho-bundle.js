@@ -3,7 +3,6 @@
  * 개별 Tampermonkey 메타데이터는 제거된 실행 코드만 포함한다.
  */
 
-
 /* ===== wuxia-rpg-core.user.js ===== */
 (function () {
     'use strict';
@@ -610,7 +609,71 @@
             important:
                 targetState.important ??
                 npc?.important ??
-                false
+                false,
+
+            /*
+             * 관계 탭의 성인 관계 행동은
+             * 엔진이 명시한 안전 필드만 사용한다.
+             * 성인 여부가 미확정이면 false로 유지한다.
+             */
+            age:
+                targetState.age ??
+                npc?.age ??
+                null,
+
+            adultConfirmed:
+                targetState.adultConfirmed === true
+                ||
+                targetState.isAdult === true
+                ||
+                npc?.adultConfirmed === true,
+
+            romanceEligible:
+                targetState.romanceEligible ??
+                npc?.romanceEligible ??
+                false,
+
+            marriageEligible:
+                targetState.marriageEligible ??
+                npc?.marriageEligible ??
+                false,
+
+            dualCultivationEligible:
+                targetState.dualCultivationEligible ??
+                npc?.dualCultivationEligible ??
+                false,
+
+            safePrivateLocation:
+                targetState.safePrivateLocation ??
+                targetState.privateLocation ??
+                npc?.safePrivateLocation ??
+                false,
+
+            dualCultivationCooldownUntil:
+                targetState.dualCultivationCooldownUntil ??
+                npc?.dualCultivationCooldownUntil ??
+                null,
+
+            dualCultivationCooldownActive:
+                targetState.dualCultivationCooldownActive ??
+                npc?.dualCultivationCooldownActive ??
+                false,
+
+            dualCultivationCooldownReady:
+                targetState.dualCultivationCooldownReady ??
+                npc?.dualCultivationCooldownReady ??
+                true,
+
+            capabilities: {
+                ...(
+                    npc?.capabilities ||
+                    {}
+                ),
+                ...(
+                    targetState.capabilities ||
+                    {}
+                )
+            }
         };
 
 
@@ -1936,7 +1999,6 @@
     init();
 
 })();
-
 /* ===== end wuxia-rpg-core.user.js ===== */
 
 /* ===== wuxia-rpg-session.user.js ===== */
@@ -6838,7 +6900,6 @@ html.wuxia-rpg-logged-out
     init();
 
 })();
-
 /* ===== end wuxia-rpg-session.user.js ===== */
 
 /* ===== wuxia-rpg-ui.user.js ===== */
@@ -6850,7 +6911,7 @@ html.wuxia-rpg-logged-out
      * ROOT ID는 v20을 그대로 사용한다.
      */
     const ROOT_ID = 'wuxia-player-ui-v20';
-    const STYLE_ID = 'wuxia-player-style-v27';
+    const STYLE_ID = 'wuxia-player-style-v28';
 
     const PLAYER_KEY = 'wuxia_rpg_status_v2';
     const TARGET_KEY = 'wuxia_rpg_target_v1';
@@ -8048,6 +8109,17 @@ color:#d0a3ff!important
 .bag-action:disabled{
 opacity:.6!important;
 cursor:default!important
+}
+
+.npc-detail:disabled{
+opacity:.6!important;
+cursor:default!important
+}
+
+.relation-action-note{
+margin-top:5px!important;
+font-size:9px!important;
+color:#9b9ba5!important
 }
 
 
@@ -9450,6 +9522,216 @@ ${
     }
 
 
+    function relationHasTag(
+        npc,
+        ...wanted
+    ) {
+        const tags =
+            cleanDialogueTags(
+                npc
+            )
+            .map(
+                String
+            );
+
+        return wanted.some(
+            tag =>
+                tags.includes(
+                    tag
+                )
+        );
+    }
+
+
+    function relationAdultConfirmed(npc) {
+        const age =
+            Number(
+                npc?.age
+            );
+
+        return (
+            npc?.adultConfirmed ===
+                true
+
+            ||
+
+            (
+                Number.isFinite(
+                    age
+                )
+
+                &&
+
+                age >=
+                    18
+            )
+        );
+    }
+
+
+    function relationInteractionContext(npc) {
+        const local =
+            localNPCs.active ===
+                true
+
+            ? (
+                localNPCs.npcs ||
+                []
+            )
+            .find(
+                item =>
+                    item.name ===
+                    npc.name
+            )
+
+            : null;
+
+        return {
+            ...npc,
+            ...(
+                local ||
+                {}
+            ),
+            name:
+                npc.name,
+            tags:
+                npc.tags ||
+                local?.tags ||
+                [],
+            affinity:
+                npc.affinity ??
+                local?.affinity ??
+                0,
+            trust:
+                npc.trust ??
+                local?.trust ??
+                0,
+            currentlyPresent:
+                !!local,
+            safePrivateLocation:
+                local?.safePrivateLocation ===
+                    true
+
+                ||
+
+                local?.privateLocation ===
+                    true
+
+                ||
+
+                localNPCs.safePrivateLocation ===
+                    true
+
+                ||
+
+                player.currentScene
+                    ?.safePrivateLocation ===
+                    true
+        };
+    }
+
+
+    function dualCultivationState(npc) {
+        const visible =
+            relationAdultConfirmed(
+                npc
+            )
+
+            &&
+
+            relationHasTag(
+                npc,
+                '교제',
+                '연인',
+                '배우자'
+            );
+
+        if (!visible) {
+            return {
+                visible: false,
+                enabled: false,
+                reason: ''
+            };
+        }
+
+        const affinity =
+            Number(
+                npc.affinity ??
+                0
+            );
+
+        const trust =
+            Number(
+                npc.trust ??
+                0
+            );
+
+        const capable =
+            npc.dualCultivationEligible ===
+                true
+
+            ||
+
+            npc.capabilities
+                ?.dualCultivation ===
+                true;
+
+        const privatePlace =
+            npc.safePrivateLocation ===
+                true
+
+            ||
+
+            npc.privateLocation ===
+                true;
+
+        let reason = '';
+
+        if (!npc.currentlyPresent) {
+            reason =
+                '같은 장소에 있지 않음';
+        }
+        else if (!capable) {
+            reason =
+                '현재 쌍수 제안 불가';
+        }
+        else if (
+            affinity < 80 ||
+            trust < 70
+        ) {
+            reason =
+                '호감 80 / 신뢰 70 필요';
+        }
+        else if (!privatePlace) {
+            reason =
+                '안전하고 사적인 장소 필요';
+        }
+        else if (
+            npc.dualCultivationCooldownActive ===
+                true
+
+            ||
+
+            npc.dualCultivationCooldownReady ===
+                false
+        ) {
+            reason =
+                '72시간 쿨다운 진행 중';
+        }
+
+        return {
+            visible: true,
+            enabled: !reason,
+            reason
+        };
+    }
+
+
+    function dualCultivationPrompt(npc) {
+        return `${npc.name}에게 쌍수를 제안한다. 두 사람 모두 성인인지, 교제 관계·호감·신뢰·72시간 쿨다운·안전하고 사적인 장소·상호 동의를 먼저 확인한다. 수락되면 실제 성인 연인 간 성관계 이벤트로 판정하고 기록하되, 단순 합동 명상으로 바꾸지 말고 장면은 fade-to-black으로 처리한다.`;
+    }
+
+
     function renderRelations() {
         const list =
             [
@@ -9510,9 +9792,22 @@ ${
             );
         }
 
-        for (const npc of list) {
+        for (
+            const [index, npc]
+            of list.entries()
+        ) {
             const tags =
                 cleanDialogueTags(npc);
+
+            const dualNpc =
+                relationInteractionContext(
+                    npc
+                );
+
+            const dualState =
+                dualCultivationState(
+                    dualNpc
+                );
 
             html += `
 <div class="card npc-card">
@@ -9646,6 +9941,34 @@ ${
 <div class="muted">
     ${esc(npc.lastEvent)}
 </div>
+`
+                : ''
+        }
+
+        ${
+            dualState.visible
+                ? `
+<button
+    class="npc-detail"
+    data-rel-dual="${index}"
+    ${
+        dualState.enabled
+            ? ''
+            : 'disabled'
+    }
+    title="${esc(dualState.reason)}"
+>
+    쌍수 제안
+</button>
+${
+    dualState.reason
+        ? `
+<div class="relation-action-note">
+    ${esc(dualState.reason)}
+</div>
+`
+        : ''
+}
 `
                 : ''
         }
@@ -10156,6 +10479,33 @@ ${
 
             dualCultivationEligible:
                 npc.dualCultivationEligible ===
+                true,
+
+            age:
+                npc.age ??
+                null,
+
+            adultConfirmed:
+                npc.adultConfirmed ===
+                true,
+
+            safePrivateLocation:
+                npc.safePrivateLocation ===
+                true
+                ||
+                npc.privateLocation ===
+                true,
+
+            dualCultivationCooldownUntil:
+                npc.dualCultivationCooldownUntil ??
+                null,
+
+            dualCultivationCooldownActive:
+                npc.dualCultivationCooldownActive ??
+                false,
+
+            dualCultivationCooldownReady:
+                npc.dualCultivationCooldownReady ??
                 true,
 
 
@@ -11092,6 +11442,58 @@ ${
                 }
 
 
+                const relationDual =
+                    event.target.closest(
+                        '[data-rel-dual]'
+                    );
+
+                if (
+                    relationDual &&
+                    !relationDual.disabled
+                ) {
+                    const visibleRelations =
+                        [
+                            ...(
+                                player.relations ||
+                                []
+                            )
+                        ]
+                        .filter(
+                            relationMatch
+                        );
+
+                    const npc =
+                        visibleRelations[
+                            Number(
+                                relationDual.dataset
+                                    .relDual
+                            )
+                        ];
+
+                    const contextualNpc =
+                        npc
+                            ? relationInteractionContext(
+                                npc
+                            )
+                            : null;
+
+                    if (
+                        contextualNpc &&
+                        dualCultivationState(
+                            contextualNpc
+                        ).enabled
+                    ) {
+                        setComposerText(
+                            dualCultivationPrompt(
+                                contextualNpc
+                            )
+                        );
+                    }
+
+                    return;
+                }
+
+
                 const action =
                     event.target.closest(
                         '[data-bag-command]'
@@ -11329,7 +11731,6 @@ ${
     init();
 
 })();
-
 /* ===== end wuxia-rpg-ui.user.js ===== */
 
 /* ===== wuxia-rpg-target.user.js ===== */
@@ -12511,6 +12912,58 @@ text-align:right!important
         );
 
 
+    const numericAge =
+        Number(
+            target.age
+        );
+
+
+    const adultConfirmed =
+        target.adultConfirmed ===
+            true
+
+        ||
+
+        (
+            Number.isFinite(
+                numericAge
+            )
+
+            &&
+
+            numericAge >=
+                18
+        );
+
+
+    const romanticPartner =
+        hasTag(
+            '교제',
+            '연인',
+            '배우자'
+        );
+
+
+    const safePrivateLocation =
+        target.safePrivateLocation ===
+            true
+
+        ||
+
+        target.privateLocation ===
+            true;
+
+
+    const cooldownReady =
+        target.dualCultivationCooldownActive !==
+            true
+
+        &&
+
+        target.dualCultivationCooldownReady !==
+            false;
+
+
     function action(
         label,
         text,
@@ -12863,12 +13316,12 @@ text-align:right!important
 
             '쌍수',
 
-            `${name}에게 쌍수 수련을 제안한다`,
+            `${name}에게 쌍수를 제안한다. 두 사람 모두 성인인지, 교제 관계·호감·신뢰·72시간 쿨다운·안전하고 사적인 장소·상호 동의를 먼저 확인한다. 수락되면 실제 성인 연인 간 성관계 이벤트로 판정하고 기록하되, 단순 합동 명상으로 바꾸지 말고 장면은 fade-to-black으로 처리한다.`,
 
             interactionRequired(
                 minRelation(
-                    90,
-                    85
+                    80,
+                    70
                 )
 
                 &&
@@ -12877,22 +13330,34 @@ text-align:right!important
 
                 &&
 
-                hasTag(
-                    '연인',
-                    '배우자'
-                )
+                adultConfirmed
+
+                &&
+
+                romanticPartner
+
+                &&
+
+                safePrivateLocation
+
+                &&
+
+                cooldownReady
             ),
 
             !canInteract
                 ? '같은 장소에 있지 않음'
-                : !hasTag(
-                    '연인',
-                    '배우자'
-                )
-                    ? '연인 또는 배우자 관계 필요'
+                : !adultConfirmed
+                    ? '성인 여부 확인 필요'
+                    : !romanticPartner
+                        ? '교제·연인·배우자 관계 필요'
                     : !dualPossible
-                        ? '쌍수 수련 조건을 충족하지 않음'
-                        : '호감 90 / 신뢰 85 필요',
+                        ? '쌍수 제안 조건을 충족하지 않음'
+                        : !safePrivateLocation
+                            ? '안전하고 사적인 장소 필요'
+                            : !cooldownReady
+                                ? '72시간 쿨다운 진행 중'
+                                : '호감 80 / 신뢰 70 필요',
 
             'good'
         );
@@ -13074,7 +13539,14 @@ text-align:right!important
                 martialTeaching,
                 dating,
                 marriage,
-                dualCultivation
+                ...(
+                    adultConfirmed &&
+                    romanticPartner
+                        ? [
+                            dualCultivation
+                        ]
+                        : []
+                )
             ]
         };
     }
@@ -13971,7 +14443,6 @@ ${body}
     init();
 
 })();
-
 /* ===== end wuxia-rpg-target.user.js ===== */
 
 /* ===== wuxia-rpg-portrait.user.js ===== */
@@ -15612,7 +16083,6 @@ font-size:9px!important
     init();
 
 })();
-
 /* ===== end wuxia-rpg-portrait.user.js ===== */
 
 /* ===== wuxia-rpg-handoff.user.js ===== */
@@ -16575,5 +17045,4 @@ background:rgba(89,55,128,.98)!important
     init();
 
 })();
-
 /* ===== end wuxia-rpg-handoff.user.js ===== */

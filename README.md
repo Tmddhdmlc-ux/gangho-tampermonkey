@@ -4,10 +4,10 @@
 
 ## 현재 최신 버전
 
-1. Core Lite v2.2 — `wuxia-rpg-core.user.js`
+1. Core Lite v2.3 — `wuxia-rpg-core.user.js`
 2. 세션 컨트롤러 v1.6 — `wuxia-rpg-session.user.js`
-3. 통합 UI Lite v2.7 — `wuxia-rpg-ui.user.js`
-4. 대상 정보창 Lite v2.3 — `wuxia-rpg-target.user.js`
+3. 통합 UI Lite v2.8 — `wuxia-rpg-ui.user.js`
+4. 대상 정보창 Lite v2.4 — `wuxia-rpg-target.user.js`
 5. 초상화 UI Lite v2.2 — `wuxia-rpg-portrait.user.js`
 6. 새 채팅 이어하기 v1.3 — `wuxia-rpg-handoff.user.js`
 
@@ -25,6 +25,8 @@
 설치 후 ChatGPT 페이지를 새로고침합니다.
 
 세션 컨트롤러 v1.6은 `새로하기`를 누르면 전체 부트스트랩 프롬프트와 `새게임 시작하기 / 프롬프트 복사 / 취소`를 먼저 표시합니다. `새게임 시작하기`를 눌러도 자동 전송하지 않고 ChatGPT 입력창에만 채웁니다. 기존 런처 드래그, 이어하기, 로그아웃, 캐릭터 슬롯과 백업 기능은 유지됩니다.
+
+통합 UI v2.8과 대상 정보창 v2.4는 쌍수를 성인 교제 관계의 실제 성관계 이벤트로 요청하되 장면은 fade-to-black으로만 처리합니다. 관계 탭에서는 성인 확인과 교제 상태가 있는 NPC에게만 `쌍수 제안`을 표시하며, 같은 장소·호감 80·신뢰 70·엔진 허용·안전하고 사적인 장소·72시간 쿨다운 조건이 충족되어야 입력창에 제안 프롬프트를 채웁니다. Core v2.3은 이 판정에 필요한 성인 확인·행동 허용·장소·쿨다운 필드를 관계 기록에 보존합니다.
 
 ## 이후 업데이트
 

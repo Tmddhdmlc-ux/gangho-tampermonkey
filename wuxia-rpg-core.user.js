@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG Core Lite v2.2
+// @name         무협 RPG Core Lite v2.3
 // @namespace    wuxia-rpg-core
-// @version      2.2
+// @version      2.3
 // @description  초저부하 RPG 태그 통합 동기화 + 관계기록 + 자동세이브
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -616,7 +616,71 @@
             important:
                 targetState.important ??
                 npc?.important ??
-                false
+                false,
+
+            /*
+             * 관계 탭의 성인 관계 행동은
+             * 엔진이 명시한 안전 필드만 사용한다.
+             * 성인 여부가 미확정이면 false로 유지한다.
+             */
+            age:
+                targetState.age ??
+                npc?.age ??
+                null,
+
+            adultConfirmed:
+                targetState.adultConfirmed === true
+                ||
+                targetState.isAdult === true
+                ||
+                npc?.adultConfirmed === true,
+
+            romanceEligible:
+                targetState.romanceEligible ??
+                npc?.romanceEligible ??
+                false,
+
+            marriageEligible:
+                targetState.marriageEligible ??
+                npc?.marriageEligible ??
+                false,
+
+            dualCultivationEligible:
+                targetState.dualCultivationEligible ??
+                npc?.dualCultivationEligible ??
+                false,
+
+            safePrivateLocation:
+                targetState.safePrivateLocation ??
+                targetState.privateLocation ??
+                npc?.safePrivateLocation ??
+                false,
+
+            dualCultivationCooldownUntil:
+                targetState.dualCultivationCooldownUntil ??
+                npc?.dualCultivationCooldownUntil ??
+                null,
+
+            dualCultivationCooldownActive:
+                targetState.dualCultivationCooldownActive ??
+                npc?.dualCultivationCooldownActive ??
+                false,
+
+            dualCultivationCooldownReady:
+                targetState.dualCultivationCooldownReady ??
+                npc?.dualCultivationCooldownReady ??
+                true,
+
+            capabilities: {
+                ...(
+                    npc?.capabilities ||
+                    {}
+                ),
+                ...(
+                    targetState.capabilities ||
+                    {}
+                )
+            }
         };
 
 

@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 대상 정보창 Lite v2.3
+// @name         무협 RPG 대상 정보창 Lite v2.4
 // @namespace    wuxia-rpg-target-lite
-// @version      2.3
+// @version      2.4
 // @description  이벤트형 대상창 - 다중 적 동시 표시/초상화 드래그/원위치/저부하
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -1189,6 +1189,58 @@ text-align:right!important
         );
 
 
+    const numericAge =
+        Number(
+            target.age
+        );
+
+
+    const adultConfirmed =
+        target.adultConfirmed ===
+            true
+
+        ||
+
+        (
+            Number.isFinite(
+                numericAge
+            )
+
+            &&
+
+            numericAge >=
+                18
+        );
+
+
+    const romanticPartner =
+        hasTag(
+            '교제',
+            '연인',
+            '배우자'
+        );
+
+
+    const safePrivateLocation =
+        target.safePrivateLocation ===
+            true
+
+        ||
+
+        target.privateLocation ===
+            true;
+
+
+    const cooldownReady =
+        target.dualCultivationCooldownActive !==
+            true
+
+        &&
+
+        target.dualCultivationCooldownReady !==
+            false;
+
+
     function action(
         label,
         text,
@@ -1541,12 +1593,12 @@ text-align:right!important
 
             '쌍수',
 
-            `${name}에게 쌍수 수련을 제안한다`,
+            `${name}에게 쌍수를 제안한다. 두 사람 모두 성인인지, 교제 관계·호감·신뢰·72시간 쿨다운·안전하고 사적인 장소·상호 동의를 먼저 확인한다. 수락되면 실제 성인 연인 간 성관계 이벤트로 판정하고 기록하되, 단순 합동 명상으로 바꾸지 말고 장면은 fade-to-black으로 처리한다.`,
 
             interactionRequired(
                 minRelation(
-                    90,
-                    85
+                    80,
+                    70
                 )
 
                 &&
@@ -1555,22 +1607,34 @@ text-align:right!important
 
                 &&
 
-                hasTag(
-                    '연인',
-                    '배우자'
-                )
+                adultConfirmed
+
+                &&
+
+                romanticPartner
+
+                &&
+
+                safePrivateLocation
+
+                &&
+
+                cooldownReady
             ),
 
             !canInteract
                 ? '같은 장소에 있지 않음'
-                : !hasTag(
-                    '연인',
-                    '배우자'
-                )
-                    ? '연인 또는 배우자 관계 필요'
+                : !adultConfirmed
+                    ? '성인 여부 확인 필요'
+                    : !romanticPartner
+                        ? '교제·연인·배우자 관계 필요'
                     : !dualPossible
-                        ? '쌍수 수련 조건을 충족하지 않음'
-                        : '호감 90 / 신뢰 85 필요',
+                        ? '쌍수 제안 조건을 충족하지 않음'
+                        : !safePrivateLocation
+                            ? '안전하고 사적인 장소 필요'
+                            : !cooldownReady
+                                ? '72시간 쿨다운 진행 중'
+                                : '호감 80 / 신뢰 70 필요',
 
             'good'
         );
@@ -1752,7 +1816,14 @@ text-align:right!important
                 martialTeaching,
                 dating,
                 marriage,
-                dualCultivation
+                ...(
+                    adultConfirmed &&
+                    romanticPartner
+                        ? [
+                            dualCultivation
+                        ]
+                        : []
+                )
             ]
         };
     }
