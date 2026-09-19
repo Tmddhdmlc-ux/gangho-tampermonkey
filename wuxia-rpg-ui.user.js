@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 통합 UI Lite v2.9
+// @name         무협 RPG 통합 UI Lite v2.10
 // @namespace    wuxia-rpg-ui-lite
-// @version      2.9
+// @version      2.10
 // @description  이벤트형 통합 UI + 데미지 + 실적용 스탯 보정 표시 + 저부하 연동
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -19,7 +19,7 @@
      * ROOT ID는 v20을 그대로 사용한다.
      */
     const ROOT_ID = 'wuxia-player-ui-v20';
-    const STYLE_ID = 'wuxia-player-style-v29';
+    const STYLE_ID = 'wuxia-player-style-v210';
 
     const PLAYER_KEY = 'wuxia_rpg_status_v2';
     const TARGET_KEY = 'wuxia_rpg_target_v1';
@@ -3668,6 +3668,17 @@ ${
                     npc.trust ??
                     0
             },
+
+            publicRelationships:
+                Array.isArray(
+                    npc.publicRelationships
+                )
+                    ? npc.publicRelationships
+                    : [],
+
+            publicRelationshipVerifiedNone:
+                npc.publicRelationshipVerifiedNone ===
+                    true,
 
             location:
                 localNPCs.location ||
