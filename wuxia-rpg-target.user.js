@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 대상 정보창 Lite v2.5
+// @name         무협 RPG 대상 정보창 Lite v2.6
 // @namespace    wuxia-rpg-target-lite
-// @version      2.5
+// @version      2.6
 // @description  이벤트형 대상창 - 다중 적 동시 표시/초상화 드래그/원위치/저부하
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -145,6 +145,16 @@
             )
         );
     }
+
+    const TARGET_STAT_LABELS = {
+        attack: '공격력',
+        strength: '근력',
+        agility: '민첩',
+        intelligence: '지능',
+        constitution: '체질',
+        innerPower: '내공'
+    };
+
 
     function gradeClass(grade) {
         switch (
@@ -2009,7 +2019,6 @@ function actionHTML(
                 typeof enemy.weapon === 'string'
                     ? { name: enemy.weapon }
                     : enemy.weapon || null,
-            equipment: enemy.equipment || [],
             martialArts: enemy.martialArts || [],
             inventory: enemy.inventory || [],
             note: enemy.note || '',
@@ -2261,7 +2270,7 @@ ${meta ? `<div class="muted">${esc(meta)}</div>` : ''}
         )
         .map(
             ([k,v]) =>
-                `<span class="chip">${esc(k)} ${Number(v)>0?'+':''}${esc(v)}</span>`
+                `<span class="chip">${esc(TARGET_STAT_LABELS[k] || k)} ${Number(v)>0?'+':''}${esc(v)}</span>`
         )
         .join('')
     }
@@ -2302,18 +2311,6 @@ ${detail(
 ${detail('무기',weaponHTML)}
 
 ${detail(
-    `장비 (${target.equipment?.length || 0})`,
-    target.equipment?.length
-        ? target.equipment
-            .map(
-                x =>
-                    `<div class="${gradeClass(x.grade)}">${x.grade?`(${esc(x.grade)}) `:''}${esc(x.name)}</div>`
-            )
-            .join('<br>')
-        : '확인된 장비 없음'
-)}
-
-${detail(
     `무공 (${target.martialArts?.length || 0})`,
     target.martialArts?.length
         ? target.martialArts
@@ -2338,10 +2335,10 @@ ${detail(
 )}
 
 ${
-    target.note
+    target.observation
         ? detail(
             '관찰',
-            esc(target.note)
+            esc(target.observation)
         )
         : ''
 }
