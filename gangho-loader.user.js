@@ -1,11 +1,10 @@
 // ==UserScript==
 // @name         강호기행 GitHub Loader
 // @namespace    gangho-github-loader
-// @version      1.1
+// @version      1.2
 // @description  GitHub의 최신 강호기행 스크립트 6개를 매 새로고침마다 직접 불러와 실행
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
-// @grant        GM_xmlhttpRequest
 // @grant        GM_addElement
 // @connect      raw.githubusercontent.com
 // @run-at       document-idle
@@ -26,91 +25,116 @@
         'wuxia-rpg-handoff.user.js'
     ];
 
-    function fetchText(filename) {
-        return new Promise((resolve, reject) => {
-            const url =
-                BASE +
-                filename +
-                '?_gangho=' +
-                Date.now();
+    const LOAD_TIMEOUT =
+        12000;
 
-            GM_xmlhttpRequest({
-                method: 'GET',
-                url,
-
-                onload(response) {
-                    if (
-                        response.status >= 200 &&
-                        response.status < 300
-                    ) {
-                        resolve(response.responseText);
-                    } else {
-                        reject(
-                            new Error(
-                                filename +
-                                ' HTTP ' +
-                                response.status
-                            )
-                        );
-                    }
-                },
-
-                onerror(error) {
-                    reject(
-                        new Error(
-                            filename +
-                            ' 네트워크 오류: ' +
-                            String(
-                                error?.error ||
-                                error?.statusText ||
-                                ''
-                            )
-                        )
-                    );
-                }
-            });
-        });
-    }
-
-    function stripMeta(code) {
-        return String(code || '')
-            .replace(
-                /^\s*\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==\s*/m,
-                ''
-            );
-    }
-
-    function executeInPage(
-        code,
+    function loadScript(
         filename
     ) {
-        const script =
-            GM_addElement(
-                'script',
-                {
-                    type:
-                        'text/javascript',
+        return new Promise(
+            (resolve, reject) => {
 
-                    textContent:
-                        stripMeta(code) +
-                        '\n//# sourceURL=' +
-                        BASE +
-                        filename
+                const url =
+                    BASE +
+                    filename +
+                    '?_gangho=' +
+                    Date.now();
+
+                let settled =
+                    false;
+
+                let timer =
+                    null;
+
+                let script =
+                    null;
+
+                function finish(
+                    error = null
+                ) {
+                    if (settled) {
+                        return;
+                    }
+
+                    settled =
+                        true;
+
+                    clearTimeout(
+                        timer
+                    );
+
+                    script
+                        ?.remove();
+
+                    if (error) {
+                        reject(
+                            error
+                        );
+                    } else {
+                        resolve();
+                    }
                 }
-            );
 
-        if (!script) {
-            throw new Error(
-                filename +
-                ' script 주입 실패'
-            );
-        }
+                try {
+                    script =
+                        GM_addElement(
+                            'script',
+                            {
+                                src:
+                                    url,
 
-        /*
-         * 삽입 시 즉시 실행되므로
-         * DOM에는 남겨둘 필요 없음.
-         */
-        script.remove();
+                                type:
+                                    'text/javascript',
+
+                                async:
+                                    false
+                            }
+                        );
+
+                    script.addEventListener(
+                        'load',
+                        () =>
+                            finish(),
+                        {
+                            once:
+                                true
+                        }
+                    );
+
+                    script.addEventListener(
+                        'error',
+                        () =>
+                            finish(
+                                new Error(
+                                    filename +
+                                    ' 로드 실패'
+                                )
+                            ),
+                        {
+                            once:
+                                true
+                        }
+                    );
+
+                    timer =
+                        setTimeout(
+                            () =>
+                                finish(
+                                    new Error(
+                                        filename +
+                                        ' 로드 시간 초과'
+                                    )
+                                ),
+                            LOAD_TIMEOUT
+                        );
+
+                } catch (error) {
+                    finish(
+                        error
+                    );
+                }
+            }
+        );
     }
 
     function showFailure(
@@ -192,8 +216,14 @@
     }
 
     async function run() {
+        document
+            .getElementById(
+                'gangho-loader-error'
+            )
+            ?.remove();
+
         console.log(
-            '[강호기행 Loader v1.1] GitHub 최신 스크립트 로딩 시작'
+            '[강호기행 Loader v1.2] GitHub 최신 스크립트 로딩 시작'
         );
 
         for (
@@ -201,23 +231,17 @@
             of SCRIPTS
         ) {
             try {
-                const raw =
-                    await fetchText(
-                        filename
-                    );
-
-                executeInPage(
-                    raw,
+                await loadScript(
                     filename
                 );
 
                 console.log(
-                    '[강호기행 Loader v1.1] 실행 완료:',
+                    '[강호기행 Loader v1.2] 실행 완료:',
                     filename
                 );
             } catch (error) {
                 console.error(
-                    '[강호기행 Loader v1.1] 실행 실패:',
+                    '[강호기행 Loader v1.2] 실행 실패:',
                     filename,
                     error
                 );
@@ -230,7 +254,7 @@
         }
 
         console.log(
-            '[강호기행 Loader v1.1] 전체 로딩 완료'
+            '[강호기행 Loader v1.2] 전체 로딩 완료'
         );
     }
 
