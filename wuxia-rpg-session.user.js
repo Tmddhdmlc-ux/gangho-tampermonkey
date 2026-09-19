@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         무협 RPG 세션 컨트롤러 v1.5
+// @name         무협 RPG 세션 컨트롤러 v1.6
 // @namespace    wuxia-rpg-session
-// @version      1.5
-// @description  이벤트형 세션 컨트롤러 - 런처 길게눌러 드래그/캐릭터 보관함/백업복구/이름별 파일저장
+// @version      1.6
+// @description  이벤트형 세션 컨트롤러 - 런처 드래그/캐릭터 보관함/백업복구/확인형 새게임 GitHub 부트스트랩/이름별 파일저장
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
 // @updateURL    https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-session.user.js
@@ -38,6 +38,10 @@
 
     const NEW_GAME_KEY =
         'wuxia_rpg_new_game_pending_v1';
+
+
+    const NEW_GAME_BOOTSTRAP_PROMPT =
+        'GitHub의 gangho-journey 저장소를 읽고 BOOTSTRAP.md 순서대로 《강호기행》을 로드해. 로드가 끝나면 게임을 임의로 진행하지 말고 "인계 완료"만 말해. 이후 규칙과 세이브 변경은 REPO_SYNC_POLICY.md대로 자동 동기화해. 인계 완료 후 !새 게임 시작으로 최신 canon/rules는 유지하고 save만 새 캠페인으로 초기화해.';
 
 
     /*
@@ -78,10 +82,10 @@
     // =========================================================
 
     const ROOT_ID =
-        'wuxia-session-launcher-v13';
+        'wuxia-session-launcher-v16';
 
     const STYLE_ID =
-        'wuxia-session-style-v13';
+        'wuxia-session-style-v16';
 
 
     let fsDbPromise =
@@ -93,6 +97,10 @@
 
 
     let vaultOpen =
+        false;
+
+
+    let newGameOpen =
         false;
 
 
@@ -1665,23 +1673,6 @@
         if (
             hasPlayerSave()
         ) {
-
-            const player =
-                getPlayer();
-
-
-            const ok =
-                confirm(
-                    `${player.name || '현재 캐릭터'}을 보관하고 새 게임을 시작할까?\n\n` +
-                    `캐릭터 보관함 + 자동백업 후에만 초기화한다.`
-                );
-
-
-            if (!ok) {
-                return;
-            }
-
-
             /*
              * 1. 브라우저 백업
              */
@@ -1764,22 +1755,35 @@
         await updateLauncher();
 
 
-        if (
+        const composerFilled =
             setComposerText(
-                '!새 게임 시작'
-            )
-        ) {
+                NEW_GAME_BOOTSTRAP_PROMPT
+            );
+
+
+        if (composerFilled) {
+
+            newGameOpen =
+                false;
+
+
+            await updateLauncher();
 
             showMessage(
-                '새 게임 명령을 전송하면 천명문답이 시작돼.'
+                '새 게임 프롬프트를 입력창에 넣었어. 내용을 확인한 뒤 직접 전송해 줘.'
             );
 
         }
 
         else {
 
+            const copied =
+                await copyBootstrapPrompt();
+
             showMessage(
-                '채팅에 "!새 게임 시작"이라고 입력하면 돼.'
+                copied
+                    ? '입력창을 찾지 못해 프롬프트를 복사했어. 입력창에 붙여넣고 직접 전송해 줘.'
+                    : '입력창을 찾지 못했어. 아래 프롬프트를 복사해 직접 붙여넣어 줘.'
             );
         }
     }
@@ -1795,7 +1799,7 @@
 
         const textarea =
             document.querySelector(
-                'textarea#prompt-textarea'
+                'textarea#prompt-textarea, textarea[data-testid="prompt-textarea"]'
             );
 
 
@@ -1806,8 +1810,27 @@
             textarea.focus();
 
 
-            textarea.value =
-                text;
+            const valueSetter =
+                Object.getOwnPropertyDescriptor(
+                    HTMLTextAreaElement.prototype,
+                    'value'
+                )?.set;
+
+
+            if (valueSetter) {
+
+                valueSetter.call(
+                    textarea,
+                    text
+                );
+
+            }
+
+            else {
+
+                textarea.value =
+                    text;
+            }
 
 
             textarea.dispatchEvent(
@@ -1827,7 +1850,7 @@
 
         const editable =
             document.querySelector(
-                '#prompt-textarea[contenteditable="true"], div[contenteditable="true"]#prompt-textarea'
+                '#prompt-textarea[contenteditable="true"], div.ProseMirror[contenteditable="true"]'
             );
 
 
@@ -1879,6 +1902,89 @@
 
 
         return false;
+    }
+
+
+    async function copyBootstrapPrompt() {
+
+        try {
+
+            if (
+                navigator.clipboard?.writeText
+            ) {
+
+                await navigator.clipboard.writeText(
+                    NEW_GAME_BOOTSTRAP_PROMPT
+                );
+
+
+                return true;
+            }
+
+        }
+
+        catch (_) {
+
+            // 아래의 선택 복사 방식으로 재시도한다.
+        }
+
+
+        const helper =
+            document.createElement(
+                'textarea'
+            );
+
+
+        helper.value =
+            NEW_GAME_BOOTSTRAP_PROMPT;
+
+
+        helper.setAttribute(
+            'readonly',
+            ''
+        );
+
+
+        helper.style.position =
+            'fixed';
+
+
+        helper.style.opacity =
+            '0';
+
+
+        document.body.appendChild(
+            helper
+        );
+
+
+        helper.select();
+
+
+        let copied =
+            false;
+
+
+        try {
+
+            copied =
+                document.execCommand(
+                    'copy'
+                );
+
+        }
+
+        catch (_) {
+
+            copied =
+                false;
+        }
+
+
+        helper.remove();
+
+
+        return copied;
     }
 
 
@@ -2618,6 +2724,179 @@ html.wuxia-rpg-logged-out
 }
 
 
+/* 새 게임 확인 */
+
+.wxs-new-game {
+
+    display:
+        none !important;
+
+
+    margin-top:
+        9px !important;
+
+
+    padding:
+        10px !important;
+
+
+    border:
+        1px solid
+        rgba(
+            190,
+            145,
+            255,
+            .20
+        )
+        !important;
+
+
+    border-radius:
+        9px !important;
+
+
+    background:
+        rgba(
+            125,
+            70,
+            180,
+            .07
+        )
+        !important;
+}
+
+
+.wxs-new-game.visible {
+
+    display:
+        block !important;
+}
+
+
+.wxs-new-game-title {
+
+    color:
+        #e0c5ff !important;
+
+
+    font-size:
+        11px !important;
+
+
+    font-weight:
+        950 !important;
+}
+
+
+.wxs-new-game-help {
+
+    margin:
+        5px 0 8px !important;
+
+
+    color:
+        #aaaeb9 !important;
+
+
+    font-size:
+        10px !important;
+
+
+    line-height:
+        1.45 !important;
+}
+
+
+.wxs-new-game-prompt {
+
+    width:
+        100% !important;
+
+
+    min-height:
+        118px !important;
+
+
+    padding:
+        8px !important;
+
+
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .10
+        )
+        !important;
+
+
+    border-radius:
+        7px !important;
+
+
+    background:
+        rgba(
+            0,
+            0,
+            0,
+            .18
+        )
+        !important;
+
+
+    color:
+        #dddfe6 !important;
+
+
+    font-family:
+        inherit !important;
+
+
+    font-size:
+        10px !important;
+
+
+    line-height:
+        1.45 !important;
+
+
+    resize:
+        vertical !important;
+}
+
+
+.wxs-new-game-actions {
+
+    display:
+        grid !important;
+
+
+    grid-template-columns:
+        1fr 1fr !important;
+
+
+    gap:
+        7px !important;
+
+
+    margin-top:
+        7px !important;
+}
+
+
+.wxs-new-start {
+
+    grid-column:
+        1 / -1 !important;
+
+
+    color:
+        #8ce7ab !important;
+}
+
+
 .wxs-recover {
 
     width:
@@ -2989,7 +3268,9 @@ html.wuxia-rpg-logged-out
          */
         [
             'wuxia-session-launcher-v11',
-            'wuxia-session-launcher-v12'
+            'wuxia-session-launcher-v12',
+            'wuxia-session-launcher-v13',
+            'wuxia-session-launcher-v15'
         ]
         .forEach(
             id =>
@@ -3092,6 +3373,55 @@ html.wuxia-rpg-logged-out
     >
         ＋ 새로하기
     </button>
+
+</div>
+
+
+<div class="wxs-new-game">
+
+    <div class="wxs-new-game-title">
+        새 캠페인 시작
+    </div>
+
+
+    <div class="wxs-new-game-help">
+        최신 canon/rules는 유지하고 현재 활성 save만 새 캠페인으로 바꿉니다. 기존 캐릭터는 보관함과 자동백업에 먼저 저장됩니다. 프롬프트는 자동 전송되지 않습니다.
+    </div>
+
+
+    <textarea
+        class="wxs-new-game-prompt"
+        aria-label="새 게임 부트스트랩 프롬프트"
+        readonly
+    ></textarea>
+
+
+    <div class="wxs-new-game-actions">
+
+        <button
+            class="wxs-button wxs-new-start"
+            data-action="new-start"
+        >
+            새게임 시작하기
+        </button>
+
+
+        <button
+            class="wxs-button"
+            data-action="new-copy"
+        >
+            프롬프트 복사
+        </button>
+
+
+        <button
+            class="wxs-button"
+            data-action="new-cancel"
+        >
+            취소
+        </button>
+
+    </div>
 
 </div>
 
@@ -3597,6 +3927,10 @@ html.wuxia-rpg-logged-out
 
                         case 'continue':
 
+                            newGameOpen =
+                                false;
+
+
                             continueGame();
 
                             break;
@@ -3620,7 +3954,43 @@ html.wuxia-rpg-logged-out
 
                         case 'new':
 
+                            newGameOpen =
+                                !newGameOpen;
+
+
+                            await updateLauncher();
+
+
+                            break;
+
+
+                        case 'new-start':
+
                             await startNewGame();
+
+
+                            break;
+
+
+                        case 'new-copy':
+
+                            showMessage(
+                                await copyBootstrapPrompt()
+                                    ? '새 게임 프롬프트를 복사했어.'
+                                    : '자동 복사에 실패했어. 위 프롬프트를 직접 선택해 복사해 줘.'
+                            );
+
+
+                            break;
+
+
+                        case 'new-cancel':
+
+                            newGameOpen =
+                                false;
+
+
+                            await updateLauncher();
 
                             break;
 
@@ -3774,6 +4144,24 @@ html.wuxia-rpg-logged-out
             root.querySelector(
                 '[data-action="save"]'
             );
+
+
+        const newGameBox =
+            root.querySelector(
+                '.wxs-new-game'
+            );
+
+
+        newGameBox.classList.toggle(
+            'visible',
+            newGameOpen
+        );
+
+
+        newGameBox.querySelector(
+            '.wxs-new-game-prompt'
+        ).value =
+            NEW_GAME_BOOTSTRAP_PROMPT;
 
 
         if (
@@ -4513,7 +4901,7 @@ html.wuxia-rpg-logged-out
 
 
         console.log(
-            '[무협 RPG] 세션 컨트롤러 v1.5 · 길게눌러 드래그'
+            '[무협 RPG] 세션 컨트롤러 v1.6 · 드래그 + 확인형 새 게임 부트스트랩'
         );
     }
 

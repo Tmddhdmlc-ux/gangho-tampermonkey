@@ -12,7 +12,7 @@
     {
       "id": "session",
       "name": "무협 RPG 세션 컨트롤러",
-      "version": "1.5",
+      "version": "1.6",
       "file": "wuxia-rpg-session.user.js",
       "raw": "https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-session.user.js"
     },
