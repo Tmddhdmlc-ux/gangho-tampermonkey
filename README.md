@@ -5,7 +5,7 @@
 ## 현재 최신 버전
 
 1. Core Lite v2.2 — `wuxia-rpg-core.user.js`
-2. 세션 컨트롤러 v1.4 — `wuxia-rpg-session.user.js`
+2. 세션 컨트롤러 v1.5 — `wuxia-rpg-session.user.js`
 3. 통합 UI Lite v2.7 — `wuxia-rpg-ui.user.js`
 4. 대상 정보창 Lite v2.3 — `wuxia-rpg-target.user.js`
 5. 초상화 UI Lite v2.2 — `wuxia-rpg-portrait.user.js`
