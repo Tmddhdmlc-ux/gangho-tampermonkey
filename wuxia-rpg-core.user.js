@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG Core Lite v2.5
+// @name         무협 RPG Core Lite v2.6
 // @namespace    wuxia-rpg-core
-// @version      2.5
+// @version      2.6
 // @description  초저부하 RPG 태그 통합 동기화 + 관계기록 + 자동세이브
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -342,6 +342,53 @@
             match[1].trim(),
             null
         );
+    }
+
+
+    function parseBlocks(
+        text,
+        tag
+    ) {
+
+        const regex =
+            new RegExp(
+                '\\[' +
+                tag +
+                '\\]\\s*([\\s\\S]*?)\\s*\\[\\/' +
+                tag +
+                '\\]',
+                'gi'
+            );
+
+        const blocks = [];
+        let match;
+
+        while (
+            (
+                match =
+                    regex.exec(
+                        text
+                    )
+            ) !== null
+        ) {
+            const value =
+                parse(
+                    match[1].trim(),
+                    null
+                );
+
+            if (
+                value &&
+                typeof value ===
+                    'object'
+            ) {
+                blocks.push(
+                    value
+                );
+            }
+        }
+
+        return blocks;
     }
 
 
@@ -1548,11 +1595,18 @@
                 );
 
 
-            const enemyPatch =
-                parseBlock(
+            const enemyPatches =
+                parseBlocks(
                     text,
                     'RPGENEMY'
                 );
+
+            const enemyPatch =
+                enemyPatches.length
+                    ? enemyPatches[
+                        enemyPatches.length - 1
+                    ]
+                    : null;
 
 
             const sessionPatch =
@@ -1668,27 +1722,29 @@
 
 
             if (
-                enemyPatch
+                enemyPatches.length
             ) {
 
-                const result =
-                    applyEnemyPatch(
-                        enemyPatch,
-                        !!targetPatch,
-                        playerPatch
-                    );
-
-
-                enemyChanged =
-                    true;
-
-
-                if (
-                    result.targetChanged
+                for (
+                    const patch
+                    of enemyPatches
                 ) {
+                    const result =
+                        applyEnemyPatch(
+                            patch,
+                            !!targetPatch,
+                            playerPatch
+                        );
 
-                    targetChanged =
+                    enemyChanged =
                         true;
+
+                    if (
+                        result.targetChanged
+                    ) {
+                        targetChanged =
+                            true;
+                    }
                 }
             }
 
