@@ -26,14 +26,14 @@
     {
       "id": "target",
       "name": "무협 RPG 대상 정보창 Lite",
-      "version": "2.8",
+      "version": "2.9",
       "file": "wuxia-rpg-target.user.js",
       "raw": "https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-target.user.js"
     },
     {
       "id": "portrait",
       "name": "무협 RPG 초상화 UI Lite",
-      "version": "2.2",
+      "version": "2.3",
       "file": "wuxia-rpg-portrait.user.js",
       "raw": "https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-portrait.user.js"
     },

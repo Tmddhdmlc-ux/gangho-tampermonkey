@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 대상 정보창 Lite v2.8
+// @name         무협 RPG 대상 정보창 Lite v2.9
 // @namespace    wuxia-rpg-target-lite
-// @version      2.8
+// @version      2.9
 // @description  이벤트형 대상창 - 다중 적 동시 표시/초상화 드래그/원위치/저부하
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -314,16 +314,17 @@ touch-action:none!important
 position:absolute!important;
 top:8px!important;
 right:9px!important;
-width:25px!important;
-height:25px!important;
+z-index:5!important;
+width:28px!important;
+height:28px!important;
 padding:0!important;
 display:grid!important;
 place-items:center!important;
 border:1px solid rgba(255,255,255,.14)!important;
 border-radius:8px!important;
-background:rgba(0,0,0,.20)!important;
-color:#aeb1ba!important;
-font-size:18px!important;
+background:rgba(80,18,28,.92)!important;
+color:#fff!important;
+font-size:20px!important;
 font-weight:850!important;
 line-height:1!important;
 cursor:pointer!important;

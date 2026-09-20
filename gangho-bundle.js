@@ -12162,16 +12162,17 @@ touch-action:none!important
 position:absolute!important;
 top:8px!important;
 right:9px!important;
-width:25px!important;
-height:25px!important;
+z-index:5!important;
+width:28px!important;
+height:28px!important;
 padding:0!important;
 display:grid!important;
 place-items:center!important;
 border:1px solid rgba(255,255,255,.14)!important;
 border-radius:8px!important;
-background:rgba(0,0,0,.20)!important;
-color:#aeb1ba!important;
-font-size:18px!important;
+background:rgba(80,18,28,.92)!important;
+color:#fff!important;
+font-size:20px!important;
 font-weight:850!important;
 line-height:1!important;
 cursor:pointer!important;
@@ -14737,7 +14738,7 @@ ${body}
         'wuxia-portrait-ui-v20';
 
     const STYLE_ID =
-        'wuxia-portrait-style-v22';
+        'wuxia-portrait-style-v23';
 
     const PLAYER_KEY =
         'wuxia_rpg_status_v2';
@@ -15343,6 +15344,36 @@ pointer-events:auto!important
 .p-target.enemy{border-color:rgba(255,60,78,.58)!important}
 .p-card.hidden{display:none!important}
 
+.p-target-close{
+position:absolute!important;
+top:7px!important;
+right:7px!important;
+z-index:5!important;
+width:28px!important;
+height:28px!important;
+padding:0!important;
+display:grid!important;
+place-items:center!important;
+border:1px solid rgba(255,155,165,.58)!important;
+border-radius:8px!important;
+background:rgba(80,18,28,.92)!important;
+color:#fff!important;
+font-size:20px!important;
+font-weight:900!important;
+line-height:1!important;
+cursor:pointer!important
+}
+
+.p-target-close:hover{
+background:rgba(160,35,52,.96)!important;
+border-color:rgba(255,185,193,.85)!important
+}
+
+.p-target-close:focus-visible{
+outline:2px solid rgba(120,185,255,.82)!important;
+outline-offset:2px!important
+}
+
 .p-imgbox{
 width:100%!important;
 height:var(--ph,205px)!important;
@@ -15644,6 +15675,48 @@ font-size:9px!important
         root.addEventListener(
             'click',
             async event => {
+                const closeTarget =
+                    event.target.closest(
+                        '[data-close-portrait-target]'
+                    );
+
+                if (closeTarget) {
+                    const currentTarget =
+                        parse(
+                            localStorage.getItem(
+                                TARGET_KEY
+                            ),
+                            {}
+                        ) || {};
+
+                    currentTarget.active =
+                        false;
+
+                    delete currentTarget.uiCommand;
+
+                    localStorage.setItem(
+                        TARGET_KEY,
+                        JSON.stringify(
+                            currentTarget
+                        )
+                    );
+
+                    await refreshState();
+
+                    window.dispatchEvent(
+                        new CustomEvent(
+                            'wuxia:data-updated',
+                            {
+                                detail: {
+                                    target: true
+                                }
+                            }
+                        )
+                    );
+
+                    return;
+                }
+
                 const open =
                     event.target.closest(
                         '[data-open]'
@@ -15927,6 +16000,19 @@ font-size:9px!important
                 );
 
         return `
+${
+    isPlayer
+        ? ''
+        : `
+<button
+    class="p-target-close"
+    data-close-portrait-target="1"
+    type="button"
+    title="상대창 닫기"
+    aria-label="상대창 닫기"
+>×</button>
+`
+}
 <div class="p-imgbox">
     ${
         portrait?.image
@@ -16359,7 +16445,7 @@ font-size:9px!important
         );
 
         console.log(
-            '[무협 RPG] 초상화 UI Lite v2.1 · 이벤트 모드'
+            '[무협 RPG] 초상화 UI Lite v2.3 · 이벤트 모드'
         );
     }
 

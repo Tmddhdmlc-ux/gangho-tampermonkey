@@ -7,8 +7,8 @@
 1. Core Lite v2.3 — `wuxia-rpg-core.user.js`
 2. 세션 컨트롤러 v1.7 — `wuxia-rpg-session.user.js`
 3. 통합 UI Lite v2.14 — `wuxia-rpg-ui.user.js`
-4. 대상 정보창 Lite v2.8 — `wuxia-rpg-target.user.js`
-5. 초상화 UI Lite v2.2 — `wuxia-rpg-portrait.user.js`
+4. 대상 정보창 Lite v2.9 — `wuxia-rpg-target.user.js`
+5. 초상화 UI Lite v2.3 — `wuxia-rpg-portrait.user.js`
 6. 새 채팅 이어하기 v1.3 — `wuxia-rpg-handoff.user.js`
 
 ## 최초 설치
@@ -38,6 +38,8 @@
 
 대상 정보창 v2.8은 상대창 오른쪽 위에 `×` 닫기 버튼을 추가한다. 닫기는 현재 표시만 숨기며 RPGTARGET/RPGENEMY 저장 데이터는 지우지 않는다. 새 대상 갱신이나 NPC 상세 보기를 실행하면 상대창이 다시 열린다.
 
+대상 정보창 v2.9와 초상화 UI v2.3은 `×` 버튼을 메인 대상 정보창과 상대 초상화 카드 양쪽 오른쪽 위에 모두 표시한다. 버튼의 대비와 표시 우선순위를 높여 초상화 위에서도 가려지지 않게 했다.
+
 통합 UI v2.11은 현지/관계 NPC를 대상창으로 열 때 공개된 trainingMethods와 valuables를 함께 전달한다. 따라서 친밀 관계에서 공개된 실제 수련법·귀중품이 대상 정보창 v2.7에서 사라지지 않는다.
 
 통합 UI v2.12은 행낭 아이템 이름 옆에 보유 수량을 ×N 형식으로 표시하고, 선천패시브 카드의 수치 보정 앞에 '효과' 라벨을 표시한다.
@@ -53,4 +55,4 @@ Tampermonkey가 새 버전을 확인하면 업데이트를 설치하고, 이후 
 
 통합 UI v2.13은 수련법 카드에 등급, 상승 스탯, 수련점 비용, 소요시간, 설명, 특수효과를 표시한다. `displayStatBonuses`가 있으면 이를 우선 사용하고, 없으면 `statBonuses`에서 0이 아닌 근력·민첩·지능·체질·내공을 자동 표시한다. 기초오행단련법 같은 선택형 수련은 `allocationRule.display`를 표시한다.
 
-Loader v3.1은 자동 업데이트 URL을 포함하고 번들 캐시 키를 갱신해 이전 번들 캐시가 계속 재사용되는 문제를 방지한다. 통합 UI v2.14는 좌측 상단 연결 표시에서 현재 UI 버전을 직접 보여준다.
+Loader v3.2는 자동 업데이트 URL을 유지하면서 번들 캐시 키를 다시 갱신해 이전 번들이 남아 있는 환경에서도 새 대상창·초상화 닫기 버튼을 받도록 했다. 통합 UI v2.14는 좌측 상단 연결 표시에서 현재 UI 버전을 직접 보여준다.
