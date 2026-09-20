@@ -1,7 +1,8 @@
 /* 강호기행 Runtime Bundle
- * 이 파일은 Loader가 F5 때 1회 받아 실행한다.
- * 개별 Tampermonkey 메타데이터는 제거된 실행 코드만 포함한다.
+ * Loader v3가 F5 때 이 파일 1개를 받아 실행한다.
+ * 개별 userscript 메타데이터는 제거된 실행 코드만 포함한다.
  */
+
 
 /* ===== wuxia-rpg-core.user.js ===== */
 (function () {
@@ -1999,6 +2000,7 @@
     init();
 
 })();
+
 /* ===== end wuxia-rpg-core.user.js ===== */
 
 /* ===== wuxia-rpg-session.user.js ===== */
@@ -2032,7 +2034,7 @@
 
 
     const NEW_GAME_BOOTSTRAP_PROMPT =
-        'GitHub의 gangho-journey 저장소를 읽고 BOOTSTRAP.md 순서대로 《강호기행》을 로드해. 로드가 끝나면 게임을 임의로 진행하지 말고 "인계 완료"만 말해. 이후 규칙과 세이브 변경은 REPO_SYNC_POLICY.md대로 자동 동기화해. 인계 완료 후 !새 게임 시작으로 최신 canon/rules는 유지하고 save만 새 캠페인으로 초기화해.';
+        'GitHub의 gangho-journey 저장소에서 BOOTSTRAP.md를 읽고 FAST PLAY 방식으로 《강호기행》을 로드해. 핵심 파일만 즉시 읽고 나머지는 실제로 필요할 때만 지연 로드해. 로드가 끝나면 게임을 임의로 진행하지 말고 "인계 완료"만 말해. 이후 일반 플레이에서는 GitHub 재조회를 최소화하고 REPO_SYNC_POLICY.md의 체크포인트 규칙으로 저장해. 인계 완료 후 !새 게임 시작으로 canon/rules는 유지하고 save만 새 캠페인으로 초기화해.';
 
 
     /*
@@ -6900,6 +6902,7 @@ html.wuxia-rpg-logged-out
     init();
 
 })();
+
 /* ===== end wuxia-rpg-session.user.js ===== */
 
 /* ===== wuxia-rpg-ui.user.js ===== */
@@ -6911,7 +6914,7 @@ html.wuxia-rpg-logged-out
      * ROOT ID는 v20을 그대로 사용한다.
      */
     const ROOT_ID = 'wuxia-player-ui-v20';
-    const STYLE_ID = 'wuxia-player-style-v28';
+    const STYLE_ID = 'wuxia-player-style-v211';
 
     const PLAYER_KEY = 'wuxia_rpg_status_v2';
     const TARGET_KEY = 'wuxia_rpg_target_v1';
@@ -9405,6 +9408,42 @@ ${
     }
 
 
+    function resolveMapCurrentNode(map) {
+        const text = String(map?.text || '');
+        const location = normalizePlace(
+            player.location ||
+            map?.current ||
+            ''
+        );
+
+        if (text && location) {
+            const regex = /\{(?:town|faction|dungeon|neutral|hidden):([^}]+)\}/g;
+            let match;
+
+            while ((match = regex.exec(text))) {
+                const label = normalizePlace(match[1]);
+
+                if (
+                    label &&
+                    (
+                        location === label ||
+                        location.includes(label) ||
+                        label.includes(location)
+                    )
+                ) {
+                    return match[1];
+                }
+            }
+        }
+
+        return (
+            map?.currentNode ||
+            map?.current ||
+            ''
+        );
+    }
+
+
     function renderMap() {
         const map =
             player.map ||
@@ -9424,8 +9463,8 @@ ${
         >
             ★
             ${esc(
-                map.current ||
                 player.location ||
+                map.current ||
                 ''
             )}
         </div>
@@ -9446,7 +9485,7 @@ ${
 
 <pre class="map-pre">${mapHTML(
     map.text || '',
-    map.currentNode || ''
+    resolveMapCurrentNode(map)
 )}</pre>
 
 <div class="muted">
@@ -10444,6 +10483,14 @@ ${
                 npc.inventory ||
                 [],
 
+            trainingMethods:
+                npc.trainingMethods ||
+                [],
+
+            valuables:
+                npc.valuables ||
+                [],
+
             insightChance:
                 npc.insightChance ??
                 null,
@@ -10524,6 +10571,17 @@ ${
                     npc.trust ??
                     0
             },
+
+            publicRelationships:
+                Array.isArray(
+                    npc.publicRelationships
+                )
+                    ? npc.publicRelationships
+                    : [],
+
+            publicRelationshipVerifiedNone:
+                npc.publicRelationshipVerifiedNone ===
+                    true,
 
             location:
                 localNPCs.location ||
@@ -11723,7 +11781,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.4 · 이벤트 모드'
+            '[무협 RPG] 통합 UI Lite v2.11 · 이벤트 모드'
         );
     }
 
@@ -11731,6 +11789,7 @@ ${
     init();
 
 })();
+
 /* ===== end wuxia-rpg-ui.user.js ===== */
 
 /* ===== wuxia-rpg-target.user.js ===== */
@@ -11868,6 +11927,16 @@ ${
             )
         );
     }
+
+    const TARGET_STAT_LABELS = {
+        attack: '공격력',
+        strength: '근력',
+        agility: '민첩',
+        intelligence: '지능',
+        constitution: '체질',
+        innerPower: '내공'
+    };
+
 
     function gradeClass(grade) {
         switch (
@@ -13732,7 +13801,6 @@ function actionHTML(
                 typeof enemy.weapon === 'string'
                     ? { name: enemy.weapon }
                     : enemy.weapon || null,
-            equipment: enemy.equipment || [],
             martialArts: enemy.martialArts || [],
             inventory: enemy.inventory || [],
             note: enemy.note || '',
@@ -13910,6 +13978,60 @@ function actionHTML(
         layoutExtraEnemies();
     }
 
+    function renderPublicRelationships() {
+        const list =
+            Array.isArray(
+                target.publicRelationships
+            )
+                ? target.publicRelationships
+                : [];
+
+        if (!list.length) {
+            return target.publicRelationshipVerifiedNone === true
+                ? '<div class="muted">공개 교제/혼인 관계 없음</div>'
+                : '<div class="muted">공개 관계 정보 없음</div>';
+        }
+
+        return list
+            .map(
+                item => {
+                    const type =
+                        item.relationType ||
+                        item.type ||
+                        '관계';
+
+                    const partner =
+                        item.partnerName ||
+                        item.name ||
+                        '신원 불명';
+
+                    const meta = [
+                        item.partnerFaction ||
+                            item.faction ||
+                            '',
+                        item.partnerTitle ||
+                            item.title ||
+                            '',
+                        item.knownRealm ||
+                            item.realm ||
+                            ''
+                    ]
+                    .filter(Boolean)
+                    .join(' · ');
+
+                    return `
+<div class="line">
+    <span>${esc(type)}</span>
+    <b>${esc(partner)}</b>
+</div>
+${meta ? `<div class="muted">${esc(meta)}</div>` : ''}
+`;
+                }
+            )
+            .join('');
+    }
+
+
     function renderFullDetails() {
         const relation =
             target.relation || {};
@@ -13930,7 +14052,7 @@ function actionHTML(
         )
         .map(
             ([k,v]) =>
-                `<span class="chip">${esc(k)} ${Number(v)>0?'+':''}${esc(v)}</span>`
+                `<span class="chip">${esc(TARGET_STAT_LABELS[k] || k)} ${Number(v)>0?'+':''}${esc(v)}</span>`
         )
         .join('')
     }
@@ -13963,19 +14085,12 @@ ${
         : ''
 }
 
-${detail('무기',weaponHTML)}
-
 ${detail(
-    `장비 (${target.equipment?.length || 0})`,
-    target.equipment?.length
-        ? target.equipment
-            .map(
-                x =>
-                    `<div class="${gradeClass(x.grade)}">${x.grade?`(${esc(x.grade)}) `:''}${esc(x.name)}</div>`
-            )
-            .join('<br>')
-        : '확인된 장비 없음'
+    '공개 교제/혼인',
+    renderPublicRelationships()
 )}
+
+${detail('무기',weaponHTML)}
 
 ${detail(
     `무공 (${target.martialArts?.length || 0})`,
@@ -13990,22 +14105,43 @@ ${detail(
 )}
 
 ${detail(
+    `수련법 (${target.trainingMethods?.length || 0})`,
+    target.trainingMethods?.length
+        ? target.trainingMethods
+            .map(
+                x =>
+                    `<div class="${gradeClass(x.grade)}">${x.grade?`(${esc(x.grade)}) `:''}${esc(x.name)}</div>`
+            )
+            .join('<br>')
+        : '확인된 수련법 없음'
+)}
+
+${detail(
     `소지품 (${target.inventory?.length || 0})`,
     target.inventory?.length
         ? target.inventory
             .map(
                 x =>
-                    `<div>${esc(typeof x==='string'?x:x.name)}</div>`
+                    `<div>${esc(typeof x==='string'?x:(x.quantity ? `${x.name} ×${x.quantity}` : x.name))}</div>`
             )
             .join('')
         : '확인 가능한 소지품 없음'
 )}
 
+${detail(
+    `귀중품 (${target.valuables?.length || 0})`,
+    target.valuables?.length
+        ? target.valuables
+            .map(x => `<div>${esc(typeof x==='string'?x:x.name)}</div>`)
+            .join('')
+        : '확인된 귀중품 없음'
+)}
+
 ${
-    target.note
+    target.observation
         ? detail(
             '관찰',
-            esc(target.note)
+            esc(target.observation)
         )
         : ''
 }
@@ -14443,6 +14579,7 @@ ${body}
     init();
 
 })();
+
 /* ===== end wuxia-rpg-target.user.js ===== */
 
 /* ===== wuxia-rpg-portrait.user.js ===== */
