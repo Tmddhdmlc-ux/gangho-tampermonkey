@@ -19,7 +19,7 @@
     {
       "id": "ui",
       "name": "무협 RPG 통합 UI Lite",
-      "version": "2.12",
+      "version": "2.13",
       "file": "wuxia-rpg-ui.user.js",
       "raw": "https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-ui.user.js"
     },
