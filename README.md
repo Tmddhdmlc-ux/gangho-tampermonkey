@@ -6,7 +6,7 @@
 
 1. Core Lite v2.3 — `wuxia-rpg-core.user.js`
 2. 세션 컨트롤러 v1.7 — `wuxia-rpg-session.user.js`
-3. 통합 UI Lite v2.13 — `wuxia-rpg-ui.user.js`
+3. 통합 UI Lite v2.14 — `wuxia-rpg-ui.user.js`
 4. 대상 정보창 Lite v2.7 — `wuxia-rpg-target.user.js`
 5. 초상화 UI Lite v2.2 — `wuxia-rpg-portrait.user.js`
 6. 새 채팅 이어하기 v1.3 — `wuxia-rpg-handoff.user.js`
@@ -50,3 +50,5 @@ Tampermonkey가 새 버전을 확인하면 업데이트를 설치하고, 이후 
 즉시 확인하려면 Tampermonkey 메뉴에서 사용자 스크립트 업데이트 확인을 실행한 뒤 ChatGPT를 새로고침합니다.
 
 통합 UI v2.13은 수련법 카드에 등급, 상승 스탯, 수련점 비용, 소요시간, 설명, 특수효과를 표시한다. `displayStatBonuses`가 있으면 이를 우선 사용하고, 없으면 `statBonuses`에서 0이 아닌 근력·민첩·지능·체질·내공을 자동 표시한다. 기초오행단련법 같은 선택형 수련은 `allocationRule.display`를 표시한다.
+
+Loader v3.1은 자동 업데이트 URL을 포함하고 번들 캐시 키를 갱신해 이전 번들 캐시가 계속 재사용되는 문제를 방지한다. 통합 UI v2.14는 좌측 상단 연결 표시에서 현재 UI 버전을 직접 보여준다.
