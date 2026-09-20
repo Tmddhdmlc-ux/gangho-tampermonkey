@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         무협 RPG 대상 정보창 Lite v3.0
+// @name         무협 RPG 대상 정보창 Lite v3.1
 // @namespace    wuxia-rpg-target-lite
-// @version      3.0
-// @description  이벤트형 대상창 - 다중 적 동시 표시/초상화 드래그/원위치/저부하
+// @version      3.1
+// @description  이벤트형 대상창 - 한 턴 전투 참여 적 전체 결과/다중 적 동시 표시/저부하
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
 // @updateURL    https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-target.user.js
@@ -590,6 +590,40 @@ margin-bottom:6px!important;
 color:#b7bbc7!important;
 font-size:10px!important;
 font-weight:850!important
+}
+
+#${EXTRA_ENEMY_ROOT_ID} .enemy-extra-result,
+#${ROOT_ID} .target-turn-result{
+display:flex!important;
+flex-wrap:wrap!important;
+gap:4px!important;
+margin:5px 0 7px!important
+}
+
+#${EXTRA_ENEMY_ROOT_ID} .enemy-result-chip,
+#${ROOT_ID} .enemy-result-chip{
+display:inline-flex!important;
+align-items:center!important;
+min-height:20px!important;
+padding:2px 6px!important;
+border:1px solid rgba(255,255,255,.11)!important;
+border-radius:999px!important;
+background:rgba(255,255,255,.045)!important;
+color:#c9ccd5!important;
+font-size:9px!important;
+font-weight:900!important
+}
+
+#${EXTRA_ENEMY_ROOT_ID} .enemy-result-chip.taken,
+#${ROOT_ID} .enemy-result-chip.taken{
+border-color:rgba(255,88,104,.25)!important;
+color:#ff9da6!important
+}
+
+#${EXTRA_ENEMY_ROOT_ID} .enemy-result-chip.dealt,
+#${ROOT_ID} .enemy-result-chip.dealt{
+border-color:rgba(255,181,78,.25)!important;
+color:#ffc36f!important
 }
 
 #${EXTRA_ENEMY_ROOT_ID} .enemy-extra-line{
@@ -2067,6 +2101,21 @@ function actionHTML(
             qi: enemy.qi ?? null,
             maxQi: enemy.maxQi ?? null,
             status: enemy.status || '',
+            participatedThisTurn:
+                enemy.participatedThisTurn ===
+                true,
+            damageTakenThisTurn:
+                enemy.damageTakenThisTurn ??
+                null,
+            damageDealtThisTurn:
+                enemy.damageDealtThisTurn ??
+                null,
+            combatEnded:
+                enemyState?.active ===
+                false,
+            combatSnapshot:
+                enemyState?.active ===
+                false,
             danger: enemy.danger || '',
             weapon:
                 typeof enemy.weapon === 'string'
@@ -2082,7 +2131,7 @@ function actionHTML(
 
     function activeCombatEnemies() {
         if (
-            enemyState?.active !==
+            enemyState?.dismissed ===
                 true
 
             ||
@@ -2094,62 +2143,76 @@ function actionHTML(
             return [];
         }
 
-        return enemyState.enemies
-            .filter(
-                enemy => {
-                    if (
-                        !enemy ||
-                        enemy.active ===
-                            false
-                    ) {
-                        return false;
-                    }
+        const enemies =
+            enemyState.enemies
+                .filter(Boolean);
 
-                    const status =
-                        String(
-                            enemy.status ||
-                            ''
-                        );
+        if (
+            enemyState.active ===
+                true
+        ) {
+            return enemies;
+        }
 
-                    if (
-                        [
-                            '사망',
-                            '전투불능',
-                            '도주',
-                            '이탈'
-                        ]
-                        .includes(
-                            status
-                        )
-                    ) {
-                        return false;
-                    }
-
-                    const hp =
-                        Number(
-                            enemy.hp
-                        );
-
-                    const hpKnown =
-                        enemy.hp !== null &&
-                        enemy.hp !== undefined &&
-                        enemy.hp !== '';
-
-                    return !(
-                        hpKnown
-
-                        &&
-
-                        Number.isFinite(
-                            hp
-                        )
-
-                        &&
-
-                        hp <= 0
-                    );
-                }
+        const hasTurnMarkers =
+            enemies.some(
+                enemy =>
+                    enemy.participatedThisTurn !==
+                        undefined ||
+                    enemy.damageTakenThisTurn !==
+                        undefined ||
+                    enemy.damageDealtThisTurn !==
+                        undefined
             );
+
+        if (!hasTurnMarkers) {
+            return enemies;
+        }
+
+        return enemies.filter(
+            enemy =>
+                enemy.participatedThisTurn ===
+                    true ||
+                Number(
+                    enemy.damageTakenThisTurn ||
+                    0
+                ) > 0 ||
+                Number(
+                    enemy.damageDealtThisTurn ||
+                    0
+                ) > 0
+        );
+    }
+
+
+    function enemyTurnResultChips(enemy) {
+        const chips = [];
+
+        if (enemy.status) {
+            chips.push(
+                `<span class="enemy-result-chip">${esc(enemy.status)}</span>`
+            );
+        }
+
+        if (
+            enemy.damageTakenThisTurn !=
+                null
+        ) {
+            chips.push(
+                `<span class="enemy-result-chip taken">받은 피해 ${esc(enemy.damageTakenThisTurn)}</span>`
+            );
+        }
+
+        if (
+            enemy.damageDealtThisTurn !=
+                null
+        ) {
+            chips.push(
+                `<span class="enemy-result-chip dealt">준 피해 ${esc(enemy.damageDealtThisTurn)}</span>`
+            );
+        }
+
+        return chips.join('');
     }
 
 
@@ -2350,6 +2413,12 @@ function actionHTML(
     <div class="enemy-extra-faction">
         소속 · ${esc(enemy.faction || '불명')}
     </div>
+
+    ${
+        enemyTurnResultChips(enemy)
+            ? `<div class="enemy-extra-result">${enemyTurnResultChips(enemy)}</div>`
+            : ''
+    }
 
     ${compactEnemyBar(
         '체력',
@@ -2602,6 +2671,13 @@ ${
     ${bar('내력',target.qi,target.maxQi,'qi')}
 
     ${
+        target.mode === 'enemy' &&
+        enemyTurnResultChips(target)
+            ? `<div class="target-turn-result">${enemyTurnResultChips(target)}</div>`
+            : ''
+    }
+
+    ${
         target.insightChance != null
             ? `<div class="line"><span class="insight">깨달음</span><b class="insight">${esc(target.insightChance)}%</b></div>`
             : ''
@@ -2635,6 +2711,13 @@ ${
 <div class="body">
     ${bar('체력',target.hp,target.maxHp,'hp')}
     ${bar('내력',target.qi,target.maxQi,'qi')}
+
+    ${
+        target.mode === 'enemy' &&
+        enemyTurnResultChips(target)
+            ? `<div class="target-turn-result">${enemyTurnResultChips(target)}</div>`
+            : ''
+    }
 
     ${
         target.insightChance != null
@@ -2672,7 +2755,7 @@ ${
     <div class="target-head">
         <div>
             <div class="target-name">${esc(target.name || '대상')}</div>
-            <div class="target-sub">${target.mode==='enemy'?'전투 대상':'대화 대상'}${target.faction?` · ${esc(target.faction)}`:''}</div>
+            <div class="target-sub">${target.mode==='enemy'?(enemyState?.active===false?'전투 결과':'전투 대상'):'대화 대상'}${target.faction?` · ${esc(target.faction)}`:''}</div>
             <div class="target-tip">헤더 또는 상대 초상화를 드래그해서 이동</div>
         </div>
 
@@ -2769,6 +2852,24 @@ ${body}
                     ) {
                         combatPanelClosed =
                             true;
+
+                        enemyState = {
+                            ...enemyState,
+                            dismissed: true
+                        };
+
+                        const dismissedRaw =
+                            JSON.stringify(
+                                enemyState
+                            );
+
+                        localStorage.setItem(
+                            ENEMY_KEY,
+                            dismissedRaw
+                        );
+
+                        lastEnemyRaw =
+                            dismissedRaw;
                     }
 
                     target = {
@@ -2896,6 +2997,20 @@ ${body}
         if (raw !== lastRaw) {
             lastRaw = raw;
             target = readTarget();
+
+            if (
+                target.mode !==
+                    'enemy'
+
+                &&
+
+                enemyState?.active !==
+                    true
+            ) {
+                combatPanelClosed =
+                    true;
+            }
+
             changed = true;
         }
 
@@ -3030,7 +3145,7 @@ ${body}
         );
 
         console.log(
-            '[무협 RPG] 대상 정보창 Lite v3.0 · 전투 인원수 자동 표시'
+            '[무협 RPG] 대상 정보창 Lite v3.1 · 한 턴 전투 참여 적 전체 표시'
         );
     }
 

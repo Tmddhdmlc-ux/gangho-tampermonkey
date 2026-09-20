@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG Core Lite v2.3
+// @name         무협 RPG Core Lite v2.4
 // @namespace    wuxia-rpg-core
-// @version      2.3
+// @version      2.4
 // @description  초저부하 RPG 태그 통합 동기화 + 관계기록 + 자동세이브
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -829,14 +829,11 @@
 
 
         /*
-         * 전투 시작.
-         * 첫 번째 적을 대상창으로 연결.
+         * 전투 시작/종료 결과.
+         * 한 턴에 참여한 첫 번째 적을 대상창으로 연결하고,
+         * 종료 결과도 닫지 않은 채 확인할 수 있게 유지.
          */
         if (
-            patch.active
-
-            &&
-
             Array.isArray(
                 patch.enemies
             )
@@ -857,6 +854,12 @@
 
                 mode:
                     'enemy',
+
+                enemyId:
+                    e.enemyId ||
+                    e.instanceId ||
+                    e.id ||
+                    null,
 
                 name:
                     e.name,
@@ -881,6 +884,26 @@
 
                 status:
                     e.status,
+
+                participatedThisTurn:
+                    e.participatedThisTurn ===
+                    true,
+
+                damageTakenThisTurn:
+                    e.damageTakenThisTurn ??
+                    null,
+
+                damageDealtThisTurn:
+                    e.damageDealtThisTurn ??
+                    null,
+
+                combatEnded:
+                    patch.active ===
+                    false,
+
+                combatSnapshot:
+                    patch.active ===
+                    false,
 
                 weapon:
                     typeof e.weapon ===
@@ -934,12 +957,23 @@
 
 
         /*
-         * 전투 종료.
-         * 적 대상창만 닫음.
+         * 적 목록이 없는 명시적 전투 종료만 대상창을 닫음.
          */
         if (
             patch.active ===
                 false
+
+            &&
+
+            !(
+                Array.isArray(
+                    patch.enemies
+                )
+
+                &&
+
+                patch.enemies.length
+            )
 
             &&
 
@@ -1998,7 +2032,7 @@
 
 
         console.log(
-            '[무협 RPG] Core Lite v2.2 · Ultra Low Load'
+            '[무협 RPG] Core Lite v2.4 · 한 턴 전투 결과 유지'
         );
     }
 

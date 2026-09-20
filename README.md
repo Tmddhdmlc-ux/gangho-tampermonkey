@@ -4,10 +4,10 @@
 
 ## 현재 최신 버전
 
-1. Core Lite v2.3 — `wuxia-rpg-core.user.js`
+1. Core Lite v2.4 — `wuxia-rpg-core.user.js`
 2. 세션 컨트롤러 v1.7 — `wuxia-rpg-session.user.js`
 3. 통합 UI Lite v2.14 — `wuxia-rpg-ui.user.js`
-4. 대상 정보창 Lite v3.0 — `wuxia-rpg-target.user.js`
+4. 대상 정보창 Lite v3.1 — `wuxia-rpg-target.user.js`
 5. 초상화 UI Lite v2.3 — `wuxia-rpg-portrait.user.js`
 6. 새 채팅 이어하기 v1.3 — `wuxia-rpg-handoff.user.js`
 
@@ -41,6 +41,8 @@
 대상 정보창 v2.9와 초상화 UI v2.3은 `×` 버튼을 메인 대상 정보창과 상대 초상화 카드 양쪽 오른쪽 위에 모두 표시한다. 버튼의 대비와 표시 우선순위를 높여 초상화 위에서도 가려지지 않게 했다.
 
 대상 정보창 v3.0은 전투 중 `RPGENEMY.enemies`의 생존·전투 참여 적 수에 맞춰 주 대상창 1개와 보조 상대창 N-1개를 자동으로 구성한다. 적이 4명이면 상대 상태창이 정확히 4개 표시되며 모든 창에 현재/최대 체력 숫자와 체력바가 나온다. 접힘 상태로 전투가 시작되면 미니 상태로 전환해 체력바를 숨기지 않고, 적이 쓰러지거나 도주하면 해당 창을 제거한다.
+
+Core v2.4와 대상 정보창 v3.1은 한 턴 만에 전투가 끝나도 그 턴에 피해를 주거나 받은 적을 전부 전투 결과창에 유지한다. 쓰러짐·사망·도주와 체력 0도 제거하지 않고 최종 체력바, 상태, 받은 피해, 준 피해를 함께 표시한다. 결과창은 사용자가 `×`로 닫거나 새 대상/새 전투가 들어올 때까지 남는다.
 
 통합 UI v2.11은 현지/관계 NPC를 대상창으로 열 때 공개된 trainingMethods와 valuables를 함께 전달한다. 따라서 친밀 관계에서 공개된 실제 수련법·귀중품이 대상 정보창 v2.7에서 사라지지 않는다.
 
