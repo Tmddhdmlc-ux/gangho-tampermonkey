@@ -11851,7 +11851,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.11 · 이벤트 모드'
+            '[무협 RPG] 통합 UI Lite v2.13 · 이벤트 모드'
         );
     }
 
@@ -16290,6 +16290,7 @@ font-size:9px!important
     init();
 
 })();
+
 /* ===== end wuxia-rpg-portrait.user.js ===== */
 
 /* ===== wuxia-rpg-handoff.user.js ===== */
@@ -17252,4 +17253,5 @@ background:rgba(89,55,128,.98)!important
     init();
 
 })();
+
 /* ===== end wuxia-rpg-handoff.user.js ===== */
