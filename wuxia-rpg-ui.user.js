@@ -4956,7 +4956,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.11 · 이벤트 모드'
+            '[무협 RPG] 통합 UI Lite v2.13 · 이벤트 모드'
         );
     }
 
