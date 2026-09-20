@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 세션 컨트롤러 v1.6
+// @name         무협 RPG 세션 컨트롤러 v1.7
 // @namespace    wuxia-rpg-session
-// @version      1.6
+// @version      1.7
 // @description  이벤트형 세션 컨트롤러 - 런처 드래그/캐릭터 보관함/백업복구/확인형 새게임 GitHub 부트스트랩/이름별 파일저장
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -41,7 +41,7 @@
 
 
     const NEW_GAME_BOOTSTRAP_PROMPT =
-        'GitHub의 gangho-journey 저장소를 읽고 BOOTSTRAP.md 순서대로 《강호기행》을 로드해. 로드가 끝나면 게임을 임의로 진행하지 말고 "인계 완료"만 말해. 이후 규칙과 세이브 변경은 REPO_SYNC_POLICY.md대로 자동 동기화해. 인계 완료 후 !새 게임 시작으로 최신 canon/rules는 유지하고 save만 새 캠페인으로 초기화해.';
+        'GitHub의 gangho-journey 저장소에서 BOOTSTRAP.md를 읽고 FAST PLAY 방식으로 《강호기행》을 로드해. 핵심 파일만 즉시 읽고 나머지는 실제로 필요할 때만 지연 로드해. 로드가 끝나면 게임을 임의로 진행하지 말고 "인계 완료"만 말해. 이후 일반 플레이에서는 GitHub 재조회를 최소화하고 REPO_SYNC_POLICY.md의 체크포인트 규칙으로 저장해. 인계 완료 후 !새 게임 시작으로 canon/rules는 유지하고 save만 새 캠페인으로 초기화해.';
 
 
     /*
