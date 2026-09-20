@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 통합 UI Lite v2.14
+// @name         무협 RPG 통합 UI Lite v2.15
 // @namespace    wuxia-rpg-ui-lite
-// @version      2.14
+// @version      2.15
 // @description  이벤트형 통합 UI + 데미지 + 실적용 스탯 보정 표시 + 저부하 연동
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -2392,9 +2392,17 @@ ${
             of player.training?.methods ||
             []
         ) {
+            const progressUses =
+                player.training
+                    ?.methodProgress
+                    ?.[m.id]
+                    ?.uses;
+
             const uses =
                 Number(
-                    m.uses || 0
+                    progressUses ??
+                    m.uses ??
+                    0
                 );
 
             const max =
@@ -4468,7 +4476,7 @@ ${
         </div>
 
         <div class="wx-connected">
-            ● RPG UI 연결됨 · v2.14
+            ● RPG UI 연결됨 · v2.15
         </div>
 
     </div>
