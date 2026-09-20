@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 대상 정보창 Lite v2.6
+// @name         무협 RPG 대상 정보창 Lite v2.7
 // @namespace    wuxia-rpg-target-lite
-// @version      2.6
+// @version      2.7
 // @description  이벤트형 대상창 - 다중 적 동시 표시/초상화 드래그/원위치/저부하
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -2323,15 +2323,36 @@ ${detail(
 )}
 
 ${detail(
+    `수련법 (${target.trainingMethods?.length || 0})`,
+    target.trainingMethods?.length
+        ? target.trainingMethods
+            .map(
+                x =>
+                    `<div class="${gradeClass(x.grade)}">${x.grade?`(${esc(x.grade)}) `:''}${esc(x.name)}</div>`
+            )
+            .join('<br>')
+        : '확인된 수련법 없음'
+)}
+
+${detail(
     `소지품 (${target.inventory?.length || 0})`,
     target.inventory?.length
         ? target.inventory
             .map(
                 x =>
-                    `<div>${esc(typeof x==='string'?x:x.name)}</div>`
+                    `<div>${esc(typeof x==='string'?x:(x.quantity ? `${x.name} ×${x.quantity}` : x.name))}</div>`
             )
             .join('')
         : '확인 가능한 소지품 없음'
+)}
+
+${detail(
+    `귀중품 (${target.valuables?.length || 0})`,
+    target.valuables?.length
+        ? target.valuables
+            .map(x => `<div>${esc(typeof x==='string'?x:x.name)}</div>`)
+            .join('')
+        : '확인된 귀중품 없음'
 )}
 
 ${
