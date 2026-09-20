@@ -6914,7 +6914,7 @@ html.wuxia-rpg-logged-out
      * ROOT ID는 v20을 그대로 사용한다.
      */
     const ROOT_ID = 'wuxia-player-ui-v20';
-    const STYLE_ID = 'wuxia-player-style-v211';
+    const STYLE_ID = 'wuxia-player-style-v213';
 
     const PLAYER_KEY = 'wuxia_rpg_status_v2';
     const TARGET_KEY = 'wuxia_rpg_target_v1';
@@ -8851,6 +8851,8 @@ ${
         )}
     </div>
 
+    <div class="muted" style="margin-top:7px;margin-bottom:4px">효과</div>
+
     ${
         (
             player.passive
@@ -9296,12 +9298,37 @@ ${
                     10
                 );
 
+            const trainingStatTexts = (() => {
+                if (Array.isArray(m.displayStatBonuses) && m.displayStatBonuses.length) {
+                    return m.displayStatBonuses.map(String);
+                }
+
+                if (m.allocationRule?.display) {
+                    return [String(m.allocationRule.display)];
+                }
+
+                const map = m.statBonuses || {};
+                return CORE_STAT_KEYS
+                    .map(key => {
+                        const value = Number(map[key] || 0);
+                        if (!Number.isFinite(value) || value === 0) return null;
+                        return `${STAT_LABELS[key]} ${value > 0 ? '+' : ''}${value}`;
+                    })
+                    .filter(Boolean);
+            })();
+
+            const trainingUniqueEffect =
+                typeof m.uniqueEffect === 'string'
+                    ? m.uniqueEffect
+                    : m.uniqueEffect?.event || '';
+
             html += `
 <div class="card">
 
     <div class="row">
 
-        <b>
+        <b class="${gradeClass(m.grade)}">
+            (${esc(m.grade || '?')})
             ${esc(m.name)}
         </b>
 
@@ -9328,16 +9355,54 @@ ${
         }
     </b>
 
-    <div class="muted">
-        예상:
-        ${esc(m.expected || '')}
-    </div>
+    ${
+        trainingStatTexts.length
+            ? `
+<div style="margin-top:7px">
+    <div class="muted" style="margin-bottom:4px">상승 스탯</div>
+    ${trainingStatTexts.map(text => `
+<span class="chip chip-purple">
+    ${esc(text)}
+</span>
+`).join('')}
+</div>
+`
+            : ''
+    }
 
-    <div class="muted">
-        ${esc(
-            m.description || ''
-        )}
-    </div>
+    ${
+        Number(m.trainingPointCost ?? m.cost ?? 0) > 0 || Number(m.baseHours || 0) > 0
+            ? `
+<div class="muted" style="margin-top:6px">
+    ${Number(m.trainingPointCost ?? m.cost ?? 0) > 0 ? `수련점 ${esc(m.trainingPointCost ?? m.cost)}` : ''}
+    ${Number(m.trainingPointCost ?? m.cost ?? 0) > 0 && Number(m.baseHours || 0) > 0 ? ' · ' : ''}
+    ${Number(m.baseHours || 0) > 0 ? `${esc(m.baseHours)}시간` : ''}
+</div>
+`
+            : ''
+    }
+
+    ${
+        m.description
+            ? `
+<div class="muted" style="margin-top:6px;line-height:1.55">
+    ${esc(m.description)}
+</div>
+`
+            : ''
+    }
+
+    ${
+        trainingUniqueEffect
+            ? `
+<div style="margin-top:6px">
+    <span class="chip chip-gold">
+        특수: ${esc(trainingUniqueEffect)}
+    </span>
+</div>
+`
+            : ''
+    }
 
 </div>
 `;
@@ -10811,6 +10876,11 @@ ${
             ${esc(
                 item.name ||
                 ''
+            )}
+            ×${esc(
+                Number.isFinite(Number(item.quantity))
+                    ? Number(item.quantity)
+                    : 1
             )}
         </b>
     </div>
