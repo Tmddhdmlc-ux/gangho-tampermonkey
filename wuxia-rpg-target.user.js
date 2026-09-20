@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 대상 정보창 Lite v2.9
+// @name         무협 RPG 대상 정보창 Lite v3.0
 // @namespace    wuxia-rpg-target-lite
-// @version      2.9
+// @version      3.0
 // @description  이벤트형 대상창 - 다중 적 동시 표시/초상화 드래그/원위치/저부하
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -57,6 +57,9 @@
         ) || 'mini';
 
     let actionMenuOpen =
+        false;
+
+    let combatPanelClosed =
         false;
 
     let root =
@@ -2007,6 +2010,9 @@ function actionHTML(
                     const nextTarget =
                         enemyToTarget(enemy);
 
+                    combatPanelClosed =
+                        false;
+
                     localStorage.setItem(
                         TARGET_KEY,
                         JSON.stringify(
@@ -2048,6 +2054,11 @@ function actionHTML(
         return {
             active: true,
             mode: 'enemy',
+            enemyId:
+                enemy.enemyId ||
+                enemy.instanceId ||
+                enemy.id ||
+                null,
             name: enemy.name || '적',
             faction: enemy.faction || '불명',
             realm: enemy.realm || '불명',
@@ -2066,6 +2077,142 @@ function actionHTML(
             note: enemy.note || '',
             registerRelation: false
         };
+    }
+
+
+    function activeCombatEnemies() {
+        if (
+            enemyState?.active !==
+                true
+
+            ||
+
+            !Array.isArray(
+                enemyState.enemies
+            )
+        ) {
+            return [];
+        }
+
+        return enemyState.enemies
+            .filter(
+                enemy => {
+                    if (
+                        !enemy ||
+                        enemy.active ===
+                            false
+                    ) {
+                        return false;
+                    }
+
+                    const status =
+                        String(
+                            enemy.status ||
+                            ''
+                        );
+
+                    if (
+                        [
+                            '사망',
+                            '전투불능',
+                            '도주',
+                            '이탈'
+                        ]
+                        .includes(
+                            status
+                        )
+                    ) {
+                        return false;
+                    }
+
+                    const hp =
+                        Number(
+                            enemy.hp
+                        );
+
+                    const hpKnown =
+                        enemy.hp !== null &&
+                        enemy.hp !== undefined &&
+                        enemy.hp !== '';
+
+                    return !(
+                        hpKnown
+
+                        &&
+
+                        Number.isFinite(
+                            hp
+                        )
+
+                        &&
+
+                        hp <= 0
+                    );
+                }
+            );
+    }
+
+
+    function enemyMatchesTarget(enemy) {
+        const enemyId =
+            enemy.enemyId ||
+            enemy.instanceId ||
+            enemy.id ||
+            null;
+
+        if (
+            enemyId &&
+            target.enemyId
+        ) {
+            return String(enemyId) ===
+                String(target.enemyId);
+        }
+
+        return (
+            target.mode === 'enemy' &&
+            enemy.name === target.name
+        );
+    }
+
+
+    function ensureCombatPrimaryTarget() {
+        const enemies =
+            activeCombatEnemies();
+
+        if (
+            !enemies.length ||
+            combatPanelClosed
+        ) {
+            return enemies;
+        }
+
+        const primary =
+            enemies.find(
+                enemyMatchesTarget
+            ) ||
+            enemies[0];
+
+        target = {
+            ...target,
+            ...enemyToTarget(
+                primary
+            )
+        };
+
+        if (
+            uiMode ===
+                'collapsed'
+        ) {
+            uiMode =
+                'mini';
+
+            localStorage.setItem(
+                MODE_KEY,
+                uiMode
+            );
+        }
+
+        return enemies;
     }
 
 
@@ -2146,16 +2293,10 @@ function actionHTML(
             ensureExtraEnemyRoot();
 
         const all =
-            enemyState?.active &&
-            Array.isArray(
-                enemyState.enemies
-            )
-                ? enemyState.enemies
-                : [];
+            activeCombatEnemies();
 
         if (
-            !target.active ||
-            target.mode !== 'enemy' ||
+            combatPanelClosed ||
             all.length <= 1
         ) {
             host.hidden = true;
@@ -2164,22 +2305,20 @@ function actionHTML(
             return;
         }
 
-        let skippedPrimary = false;
+        let primaryIndex =
+            all.findIndex(
+                enemyMatchesTarget
+            );
+
+        if (primaryIndex < 0) {
+            primaryIndex = 0;
+        }
 
         const extras =
             all.filter(
-                enemy => {
-                    const same =
-                        !skippedPrimary &&
-                        enemy.name === target.name;
-
-                    if (same) {
-                        skippedPrimary = true;
-                        return false;
-                    }
-
-                    return true;
-                }
+                (_, index) =>
+                    index !==
+                    primaryIndex
             );
 
         if (!extras.length) {
@@ -2411,6 +2550,8 @@ ${
     function render() {
         if (!root) return;
 
+        ensureCombatPrimaryTarget();
+
         if (!target.active) {
             root.hidden = true;
             renderExtraEnemies();
@@ -2617,6 +2758,19 @@ ${body}
                     );
 
                 if (close) {
+                    if (
+                        target.mode ===
+                            'enemy'
+
+                        &&
+
+                        activeCombatEnemies()
+                            .length
+                    ) {
+                        combatPanelClosed =
+                            true;
+                    }
+
                     target = {
                         ...target,
                         active: false
@@ -2748,6 +2902,10 @@ ${body}
         if (enemyRaw !== lastEnemyRaw) {
             lastEnemyRaw = enemyRaw;
             enemyState = readEnemies();
+
+            combatPanelClosed =
+                false;
+
             changed = true;
         }
 
@@ -2872,7 +3030,7 @@ ${body}
         );
 
         console.log(
-            '[무협 RPG] 대상 정보창 Lite v2.3 · 다중 적 동시 표시'
+            '[무협 RPG] 대상 정보창 Lite v3.0 · 전투 인원수 자동 표시'
         );
     }
 
