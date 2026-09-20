@@ -4,10 +4,10 @@
 
 ## 현재 최신 버전
 
-1. Core Lite v2.4 — `wuxia-rpg-core.user.js`
+1. Core Lite v2.5 — `wuxia-rpg-core.user.js`
 2. 세션 컨트롤러 v1.7 — `wuxia-rpg-session.user.js`
 3. 통합 UI Lite v2.14 — `wuxia-rpg-ui.user.js`
-4. 대상 정보창 Lite v3.1 — `wuxia-rpg-target.user.js`
+4. 대상 정보창 Lite v3.2 — `wuxia-rpg-target.user.js`
 5. 초상화 UI Lite v2.3 — `wuxia-rpg-portrait.user.js`
 6. 새 채팅 이어하기 v1.3 — `wuxia-rpg-handoff.user.js`
 
@@ -43,6 +43,10 @@
 대상 정보창 v3.0은 전투 중 `RPGENEMY.enemies`의 생존·전투 참여 적 수에 맞춰 주 대상창 1개와 보조 상대창 N-1개를 자동으로 구성한다. 적이 4명이면 상대 상태창이 정확히 4개 표시되며 모든 창에 현재/최대 체력 숫자와 체력바가 나온다. 접힘 상태로 전투가 시작되면 미니 상태로 전환해 체력바를 숨기지 않고, 적이 쓰러지거나 도주하면 해당 창을 제거한다.
 
 Core v2.4와 대상 정보창 v3.1은 한 턴 만에 전투가 끝나도 그 턴에 피해를 주거나 받은 적을 전부 전투 결과창에 유지한다. 쓰러짐·사망·도주와 체력 0도 제거하지 않고 최종 체력바, 상태, 받은 피해, 준 피해를 함께 표시한다. 결과창은 사용자가 `×`로 닫거나 새 대상/새 전투가 들어올 때까지 남는다.
+
+대상 정보창 v3.2는 종료 스냅샷의 일부 적에 `participatedThisTurn`이나 피해량 필드가 빠져도 `RPGENEMY.enemies` 배열을 다시 걸러내지 않는다. 배열에 네 명이 있으면 상태·체력 0 여부와 관계없이 네 개 상태창을 그대로 표시한다.
+
+Core v2.5는 전투가 끝난 응답이 RPGENEMY를 빈 배열로 잘못 보내더라도, 같은 RPGSTATE 장면에 완료된 제압 인원수와 정확히 일치하는 전투불능 현지 NPC 목록이 있으면 마지막 전투 결과를 자동 복구한다. 인원수가 정확히 일치할 때만 작동해 일반 현지 NPC를 적으로 오인하지 않는다.
 
 통합 UI v2.11은 현지/관계 NPC를 대상창으로 열 때 공개된 trainingMethods와 valuables를 함께 전달한다. 따라서 친밀 관계에서 공개된 실제 수련법·귀중품이 대상 정보창 v2.7에서 사라지지 않는다.
 

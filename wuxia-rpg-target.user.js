@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         무협 RPG 대상 정보창 Lite v3.1
+// @name         무협 RPG 대상 정보창 Lite v3.2
 // @namespace    wuxia-rpg-target-lite
-// @version      3.1
-// @description  이벤트형 대상창 - 한 턴 전투 참여 적 전체 결과/다중 적 동시 표시/저부하
+// @version      3.2
+// @description  이벤트형 대상창 - 종료 스냅샷 적 전원/다중 적 동시 표시/저부하
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
 // @updateURL    https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-target.user.js
@@ -2143,45 +2143,14 @@ function actionHTML(
             return [];
         }
 
-        const enemies =
-            enemyState.enemies
-                .filter(Boolean);
-
-        if (
-            enemyState.active ===
-                true
-        ) {
-            return enemies;
-        }
-
-        const hasTurnMarkers =
-            enemies.some(
-                enemy =>
-                    enemy.participatedThisTurn !==
-                        undefined ||
-                    enemy.damageTakenThisTurn !==
-                        undefined ||
-                    enemy.damageDealtThisTurn !==
-                        undefined
-            );
-
-        if (!hasTurnMarkers) {
-            return enemies;
-        }
-
-        return enemies.filter(
-            enemy =>
-                enemy.participatedThisTurn ===
-                    true ||
-                Number(
-                    enemy.damageTakenThisTurn ||
-                    0
-                ) > 0 ||
-                Number(
-                    enemy.damageDealtThisTurn ||
-                    0
-                ) > 0
-        );
+        /*
+         * RPGENEMY.enemies는 GM이 확정한 현재 전투/마지막 턴
+         * 참여자 배열이다. 종료 상태, 체력 0, 도주 여부나 일부
+         * 참여 마커 누락을 UI에서 다시 판정하지 않는다.
+         * 배열에 4명이 있으면 반드시 4개 창을 표시한다.
+         */
+        return enemyState.enemies
+            .filter(Boolean);
     }
 
 
@@ -3145,7 +3114,7 @@ ${body}
         );
 
         console.log(
-            '[무협 RPG] 대상 정보창 Lite v3.1 · 한 턴 전투 참여 적 전체 표시'
+            '[무협 RPG] 대상 정보창 Lite v3.2 · 종료 스냅샷 적 전원 표시'
         );
     }
 

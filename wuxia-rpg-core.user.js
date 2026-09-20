@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG Core Lite v2.4
+// @name         무협 RPG Core Lite v2.5
 // @namespace    wuxia-rpg-core
-// @version      2.4
+// @version      2.5
 // @description  초저부하 RPG 태그 통합 동기화 + 관계기록 + 자동세이브
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -780,9 +780,118 @@
     // ENEMY
     // =========================================================
 
+    function inferCompletedCombatEnemies(
+        playerPatch
+    ) {
+        const scene =
+            playerPatch?.currentScene;
+
+        const defeatedCount =
+            Number(
+                scene?.freeActionIntent
+                    ?.defeatedCount
+            );
+
+        if (
+            scene?.freeActionIntent
+                ?.result !==
+                'completed'
+
+            ||
+
+            !Number.isInteger(
+                defeatedCount
+            )
+
+            ||
+
+            defeatedCount <= 0
+
+            ||
+
+            !Array.isArray(
+                scene.localNpcs
+            )
+        ) {
+            return null;
+        }
+
+        const defeatedStatus =
+            /기절|제압|결박|전투불능|사망|도주|쓰러/;
+
+        const candidates =
+            scene.localNpcs.filter(
+                npc =>
+                    npc &&
+                    defeatedStatus.test(
+                        String(
+                            npc.status ||
+                            npc.state ||
+                            ''
+                        )
+                    ) &&
+                    npc.hp != null &&
+                    npc.maxHp != null
+            );
+
+        /*
+         * 장면의 제압 인원수와 상태가 일치할 때만 복구한다.
+         * 민간인이나 이전 장면 NPC를 적으로 오인하지 않기 위한
+         * 보수적인 폴백이다.
+         */
+        if (
+            candidates.length !==
+                defeatedCount
+        ) {
+            return null;
+        }
+
+        return {
+            active: false,
+            showLastTurn: true,
+            inferredFrom:
+                'RPGSTATE.currentScene.localNpcs',
+            enemies:
+                candidates.map(
+                    npc => ({
+                        enemyId:
+                            npc.characterId ||
+                            npc.id ||
+                            null,
+                        name:
+                            npc.name ||
+                            '적',
+                        faction:
+                            npc.faction ||
+                            '불명',
+                        realm:
+                            npc.realm ||
+                            '불명',
+                        hp:
+                            npc.hp,
+                        maxHp:
+                            npc.maxHp,
+                        qi:
+                            npc.qi ??
+                            null,
+                        maxQi:
+                            npc.maxQi ??
+                            null,
+                        status:
+                            npc.status ||
+                            npc.state ||
+                            '전투 종료',
+                        participatedThisTurn:
+                            true
+                    })
+                )
+        };
+    }
+
     function applyEnemyPatch(
         patch,
-        hasTargetPatch
+        hasTargetPatch,
+        playerPatch
     ) {
 
         if (
@@ -795,6 +904,32 @@
                 targetChanged:
                     false
             };
+        }
+
+
+        if (
+            patch.active ===
+                false
+
+            &&
+
+            Array.isArray(
+                patch.enemies
+            )
+
+            &&
+
+            patch.enemies.length ===
+                0
+        ) {
+            const inferred =
+                inferCompletedCombatEnemies(
+                    playerPatch
+                );
+
+            if (inferred) {
+                patch = inferred;
+            }
         }
 
 
@@ -1539,7 +1674,8 @@
                 const result =
                     applyEnemyPatch(
                         enemyPatch,
-                        !!targetPatch
+                        !!targetPatch,
+                        playerPatch
                     );
 
 
@@ -2032,7 +2168,7 @@
 
 
         console.log(
-            '[무협 RPG] Core Lite v2.4 · 한 턴 전투 결과 유지'
+            '[무협 RPG] Core Lite v2.5 · 빈 전투 결과 자동 복구'
         );
     }
 

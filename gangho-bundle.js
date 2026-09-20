@@ -773,9 +773,118 @@
     // ENEMY
     // =========================================================
 
+    function inferCompletedCombatEnemies(
+        playerPatch
+    ) {
+        const scene =
+            playerPatch?.currentScene;
+
+        const defeatedCount =
+            Number(
+                scene?.freeActionIntent
+                    ?.defeatedCount
+            );
+
+        if (
+            scene?.freeActionIntent
+                ?.result !==
+                'completed'
+
+            ||
+
+            !Number.isInteger(
+                defeatedCount
+            )
+
+            ||
+
+            defeatedCount <= 0
+
+            ||
+
+            !Array.isArray(
+                scene.localNpcs
+            )
+        ) {
+            return null;
+        }
+
+        const defeatedStatus =
+            /기절|제압|결박|전투불능|사망|도주|쓰러/;
+
+        const candidates =
+            scene.localNpcs.filter(
+                npc =>
+                    npc &&
+                    defeatedStatus.test(
+                        String(
+                            npc.status ||
+                            npc.state ||
+                            ''
+                        )
+                    ) &&
+                    npc.hp != null &&
+                    npc.maxHp != null
+            );
+
+        /*
+         * 장면의 제압 인원수와 상태가 일치할 때만 복구한다.
+         * 민간인이나 이전 장면 NPC를 적으로 오인하지 않기 위한
+         * 보수적인 폴백이다.
+         */
+        if (
+            candidates.length !==
+                defeatedCount
+        ) {
+            return null;
+        }
+
+        return {
+            active: false,
+            showLastTurn: true,
+            inferredFrom:
+                'RPGSTATE.currentScene.localNpcs',
+            enemies:
+                candidates.map(
+                    npc => ({
+                        enemyId:
+                            npc.characterId ||
+                            npc.id ||
+                            null,
+                        name:
+                            npc.name ||
+                            '적',
+                        faction:
+                            npc.faction ||
+                            '불명',
+                        realm:
+                            npc.realm ||
+                            '불명',
+                        hp:
+                            npc.hp,
+                        maxHp:
+                            npc.maxHp,
+                        qi:
+                            npc.qi ??
+                            null,
+                        maxQi:
+                            npc.maxQi ??
+                            null,
+                        status:
+                            npc.status ||
+                            npc.state ||
+                            '전투 종료',
+                        participatedThisTurn:
+                            true
+                    })
+                )
+        };
+    }
+
     function applyEnemyPatch(
         patch,
-        hasTargetPatch
+        hasTargetPatch,
+        playerPatch
     ) {
 
         if (
@@ -788,6 +897,32 @@
                 targetChanged:
                     false
             };
+        }
+
+
+        if (
+            patch.active ===
+                false
+
+            &&
+
+            Array.isArray(
+                patch.enemies
+            )
+
+            &&
+
+            patch.enemies.length ===
+                0
+        ) {
+            const inferred =
+                inferCompletedCombatEnemies(
+                    playerPatch
+                );
+
+            if (inferred) {
+                patch = inferred;
+            }
         }
 
 
@@ -1532,7 +1667,8 @@
                 const result =
                     applyEnemyPatch(
                         enemyPatch,
-                        !!targetPatch
+                        !!targetPatch,
+                        playerPatch
                     );
 
 
@@ -2025,7 +2161,7 @@
 
 
         console.log(
-            '[무협 RPG] Core Lite v2.4 · 한 턴 전투 결과 유지'
+            '[무협 RPG] Core Lite v2.5 · 빈 전투 결과 자동 복구'
         );
     }
 
@@ -14022,45 +14158,14 @@ function actionHTML(
             return [];
         }
 
-        const enemies =
-            enemyState.enemies
-                .filter(Boolean);
-
-        if (
-            enemyState.active ===
-                true
-        ) {
-            return enemies;
-        }
-
-        const hasTurnMarkers =
-            enemies.some(
-                enemy =>
-                    enemy.participatedThisTurn !==
-                        undefined ||
-                    enemy.damageTakenThisTurn !==
-                        undefined ||
-                    enemy.damageDealtThisTurn !==
-                        undefined
-            );
-
-        if (!hasTurnMarkers) {
-            return enemies;
-        }
-
-        return enemies.filter(
-            enemy =>
-                enemy.participatedThisTurn ===
-                    true ||
-                Number(
-                    enemy.damageTakenThisTurn ||
-                    0
-                ) > 0 ||
-                Number(
-                    enemy.damageDealtThisTurn ||
-                    0
-                ) > 0
-        );
+        /*
+         * RPGENEMY.enemies는 GM이 확정한 현재 전투/마지막 턴
+         * 참여자 배열이다. 종료 상태, 체력 0, 도주 여부나 일부
+         * 참여 마커 누락을 UI에서 다시 판정하지 않는다.
+         * 배열에 4명이 있으면 반드시 4개 창을 표시한다.
+         */
+        return enemyState.enemies
+            .filter(Boolean);
     }
 
 
@@ -15024,7 +15129,7 @@ ${body}
         );
 
         console.log(
-            '[무협 RPG] 대상 정보창 Lite v3.1 · 한 턴 전투 참여 적 전체 표시'
+            '[무협 RPG] 대상 정보창 Lite v3.2 · 종료 스냅샷 적 전원 표시'
         );
     }
 
