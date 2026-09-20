@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 대상 정보창 Lite v2.7
+// @name         무협 RPG 대상 정보창 Lite v2.8
 // @namespace    wuxia-rpg-target-lite
-// @version      2.7
+// @version      2.8
 // @description  이벤트형 대상창 - 다중 적 동시 표시/초상화 드래그/원위치/저부하
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -300,12 +300,45 @@ overflow:hidden!important
 #${ROOT_ID}.mode-full{width:372px!important}
 
 .target-header{
+position:relative!important;
 padding:11px 12px 10px!important;
+padding-right:42px!important;
 border-bottom:1px solid rgba(255,255,255,.08)!important;
 background:linear-gradient(90deg,rgba(70,110,190,.16),rgba(255,255,255,.01))!important;
 border-radius:16px 16px 0 0!important;
 user-select:none!important;
 touch-action:none!important
+}
+
+.target-close{
+position:absolute!important;
+top:8px!important;
+right:9px!important;
+width:25px!important;
+height:25px!important;
+padding:0!important;
+display:grid!important;
+place-items:center!important;
+border:1px solid rgba(255,255,255,.14)!important;
+border-radius:8px!important;
+background:rgba(0,0,0,.20)!important;
+color:#aeb1ba!important;
+font-size:18px!important;
+font-weight:850!important;
+line-height:1!important;
+cursor:pointer!important;
+touch-action:manipulation!important
+}
+
+.target-close:hover{
+border-color:rgba(255,105,120,.52)!important;
+background:rgba(165,45,60,.22)!important;
+color:#ff8f9a!important
+}
+
+.target-close:focus-visible{
+outline:2px solid rgba(120,185,255,.78)!important;
+outline-offset:2px!important
 }
 
 .target-head{
@@ -952,6 +985,14 @@ text-align:right!important
         handle.addEventListener(
             'pointerdown',
             event => {
+                if (
+                    event.target.closest(
+                        '[data-close-target]'
+                    )
+                ) {
+                    return;
+                }
+
                 sx = event.clientX;
                 sy = event.clientY;
 
@@ -2478,6 +2519,14 @@ ${
 
         root.innerHTML = `
 <div class="target-header">
+    <button
+        class="target-close"
+        data-close-target="1"
+        type="button"
+        title="상대창 닫기"
+        aria-label="상대창 닫기"
+    >×</button>
+
     <div class="target-head">
         <div>
             <div class="target-name">${esc(target.name || '대상')}</div>
@@ -2561,6 +2610,39 @@ ${body}
         root.addEventListener(
             'click',
             event => {
+                const close =
+                    event.target.closest(
+                        '[data-close-target]'
+                    );
+
+                if (close) {
+                    target = {
+                        ...target,
+                        active: false
+                    };
+
+                    delete target.uiCommand;
+
+                    const closedRaw =
+                        JSON.stringify(
+                            target
+                        );
+
+                    localStorage.setItem(
+                        TARGET_KEY,
+                        closedRaw
+                    );
+
+                    lastRaw =
+                        closedRaw;
+
+                    actionMenuOpen =
+                        false;
+
+                    render();
+                    return;
+                }
+
                 const reset =
                     event.target.closest(
                         '[data-reset-position]'

@@ -7,7 +7,7 @@
 1. Core Lite v2.3 — `wuxia-rpg-core.user.js`
 2. 세션 컨트롤러 v1.7 — `wuxia-rpg-session.user.js`
 3. 통합 UI Lite v2.14 — `wuxia-rpg-ui.user.js`
-4. 대상 정보창 Lite v2.7 — `wuxia-rpg-target.user.js`
+4. 대상 정보창 Lite v2.8 — `wuxia-rpg-target.user.js`
 5. 초상화 UI Lite v2.2 — `wuxia-rpg-portrait.user.js`
 6. 새 채팅 이어하기 v1.3 — `wuxia-rpg-handoff.user.js`
 
@@ -35,6 +35,8 @@
 대상 정보창 v2.6은 상대 무기 스탯을 공격력/근력/민첩/지능/체질/내공의 한글명으로 표시하고, 별도 장비 섹션을 제거한다. 이 게임의 장착 장비는 주무기 1개만 사용한다. 또한 관계 공개 이유 같은 시스템 설명은 '관찰'에 표시하지 않고 실제 관찰 문구가 있을 때만 관찰 섹션을 보여준다.
 
 대상 정보창 v2.7은 관계 공개단계에서 전달된 실제 무기·장비·무공·소지품뿐 아니라 수련법과 귀중품도 상세 화면에 표시한다. 소지품은 수량이 있으면 ×N으로 표시한다. 전투 상대의 체력·내력은 RPGTARGET/RPGENEMY의 정확한 현재/최대값을 그대로 표시한다.
+
+대상 정보창 v2.8은 상대창 오른쪽 위에 `×` 닫기 버튼을 추가한다. 닫기는 현재 표시만 숨기며 RPGTARGET/RPGENEMY 저장 데이터는 지우지 않는다. 새 대상 갱신이나 NPC 상세 보기를 실행하면 상대창이 다시 열린다.
 
 통합 UI v2.11은 현지/관계 NPC를 대상창으로 열 때 공개된 trainingMethods와 valuables를 함께 전달한다. 따라서 친밀 관계에서 공개된 실제 수련법·귀중품이 대상 정보창 v2.7에서 사라지지 않는다.
 
