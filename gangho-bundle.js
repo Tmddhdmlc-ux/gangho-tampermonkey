@@ -1,3 +1,4 @@
+/* GANGHO_BUNDLE_BUILD 2026-09-20-ui214 */
 /* 강호기행 Runtime Bundle
  * Loader v3가 F5 때 이 파일 1개를 받아 실행한다.
  * 개별 userscript 메타데이터는 제거된 실행 코드만 포함한다.
@@ -6914,7 +6915,7 @@ html.wuxia-rpg-logged-out
      * ROOT ID는 v20을 그대로 사용한다.
      */
     const ROOT_ID = 'wuxia-player-ui-v20';
-    const STYLE_ID = 'wuxia-player-style-v213';
+    const STYLE_ID = 'wuxia-player-style-v214';
 
     const PLAYER_KEY = 'wuxia_rpg_status_v2';
     const TARGET_KEY = 'wuxia_rpg_target_v1';
@@ -11363,7 +11364,7 @@ ${
         </div>
 
         <div class="wx-connected">
-            ● RPG UI 연결됨
+            ● RPG UI 연결됨 · v2.14
         </div>
 
     </div>
@@ -11851,7 +11852,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.13 · 이벤트 모드'
+            '[무협 RPG] 통합 UI Lite v2.14 · 이벤트 모드'
         );
     }
 
