@@ -1,6 +1,7 @@
 /* 강호기행 Runtime Bundle
  * 이 파일은 Loader가 F5 때 1회 받아 실행한다.
  * 개별 Tampermonkey 메타데이터는 제거된 실행 코드만 포함한다.
+ * Build: Core 2.6 / UI 2.15
  */
 
 /* ===== wuxia-rpg-core.user.js ===== */
@@ -335,6 +336,53 @@
             match[1].trim(),
             null
         );
+    }
+
+
+    function parseBlocks(
+        text,
+        tag
+    ) {
+
+        const regex =
+            new RegExp(
+                '\\[' +
+                tag +
+                '\\]\\s*([\\s\\S]*?)\\s*\\[\\/' +
+                tag +
+                '\\]',
+                'gi'
+            );
+
+        const blocks = [];
+        let match;
+
+        while (
+            (
+                match =
+                    regex.exec(
+                        text
+                    )
+            ) !== null
+        ) {
+            const value =
+                parse(
+                    match[1].trim(),
+                    null
+                );
+
+            if (
+                value &&
+                typeof value ===
+                    'object'
+            ) {
+                blocks.push(
+                    value
+                );
+            }
+        }
+
+        return blocks;
     }
 
 
@@ -1541,11 +1589,18 @@
                 );
 
 
-            const enemyPatch =
-                parseBlock(
+            const enemyPatches =
+                parseBlocks(
                     text,
                     'RPGENEMY'
                 );
+
+            const enemyPatch =
+                enemyPatches.length
+                    ? enemyPatches[
+                        enemyPatches.length - 1
+                    ]
+                    : null;
 
 
             const sessionPatch =
@@ -1661,27 +1716,29 @@
 
 
             if (
-                enemyPatch
+                enemyPatches.length
             ) {
 
-                const result =
-                    applyEnemyPatch(
-                        enemyPatch,
-                        !!targetPatch,
-                        playerPatch
-                    );
-
-
-                enemyChanged =
-                    true;
-
-
-                if (
-                    result.targetChanged
+                for (
+                    const patch
+                    of enemyPatches
                 ) {
+                    const result =
+                        applyEnemyPatch(
+                            patch,
+                            !!targetPatch,
+                            playerPatch
+                        );
 
-                    targetChanged =
+                    enemyChanged =
                         true;
+
+                    if (
+                        result.targetChanged
+                    ) {
+                        targetChanged =
+                            true;
+                    }
                 }
             }
 
@@ -9452,9 +9509,17 @@ ${
             of player.training?.methods ||
             []
         ) {
+            const progressUses =
+                player.training
+                    ?.methodProgress
+                    ?.[m.id]
+                    ?.uses;
+
             const uses =
                 Number(
-                    m.uses || 0
+                    progressUses ??
+                    m.uses ??
+                    0
                 );
 
             const max =
@@ -11528,7 +11593,7 @@ ${
         </div>
 
         <div class="wx-connected">
-            ● RPG UI 연결됨 · v2.14
+            ● RPG UI 연결됨 · v2.15
         </div>
 
     </div>
@@ -17822,3 +17887,4 @@ background:rgba(89,55,128,.98)!important
     init();
 
 })();
+
