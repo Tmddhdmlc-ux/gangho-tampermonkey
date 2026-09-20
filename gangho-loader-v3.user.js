@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         강호기행 GitHub Loader v3
 // @namespace    gangho-github-loader-v3
-// @version      3.0
+// @version      3.1
 // @description  GitHub 최신 강호기행 통합 번들을 F5마다 1회 받아 CSP nonce로 실행
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -10,13 +10,15 @@
 // @grant        GM_setValue
 // @connect      raw.githubusercontent.com
 // @connect      api.github.com
+// @updateURL    https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/gangho-loader-v3.user.js
+// @downloadURL  https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/gangho-loader-v3.user.js
 // @run-at       document-idle
 // ==/UserScript==
 
 (function () {
     'use strict';
 
-    const VERSION = '3.0';
+    const VERSION = '3.1';
 
     const RAW_URL =
         'https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/gangho-bundle.js';
@@ -25,7 +27,7 @@
         'https://api.github.com/repos/Tmddhdmlc-ux/gangho-tampermonkey/contents/gangho-bundle.js?ref=main';
 
     const CACHE_KEY =
-        'gangho-loader-v3-bundle-cache';
+        'gangho-loader-v31-bundle-cache';
 
     const READY_ATTR =
         'data-gangho-bundle-ready';
@@ -480,13 +482,13 @@
             );
 
             console.log(
-                '[강호기행 Loader v3.0] 실행 완료:',
+                '[강호기행 Loader v3.1] 실행 완료:',
                 result.source
             );
 
         } catch (error) {
             console.error(
-                '[강호기행 Loader v3.0] 실행 실패',
+                '[강호기행 Loader v3.1] 실행 실패',
                 error
             );
 
