@@ -1,6 +1,6 @@
 /* 강호기행 Runtime Bundle
  * Loader가 F5 때 1회 받아 실행한다.
- * Build: Core 2.6 / UI 2.19
+ * Build: Core 2.6 / UI 2.20
  */
 
 /* ===== wuxia-rpg-core.user.js ===== */
@@ -7219,6 +7219,51 @@ html.wuxia-rpg-logged-out
     const MINOR_REALM_BASE_INSIGHT_CHANCE = 30;
     const MINOR_REALM_MAX_INSIGHT_CHANCE = 50;
 
+    const MAJOR_BREAKTHROUGH_REQUIREMENTS = {
+        '이류 초입':[
+            '총 기본스탯 130',
+            '주력 외공 또는 경공 3성 이상',
+            '기본기 검증',
+            '현재 경지 강자와 실전 시험 또는 동등 난도의 목표 달성'
+        ],
+        '일류 초입':[
+            '총 기본스탯 230',
+            '주력 외공 4성 이상 + 심법 3성 이상',
+            '무공·내력 운용 검증',
+            '동급 이상의 의미 있는 실전 목표 달성'
+        ],
+        '절정 초입':[
+            '총 기본스탯 370',
+            '주력 외공 5성 이상 + 심법 4성 이상',
+            '초식 이해·내외공 연계·동급 최상위권 실전 검증'
+        ],
+        '초절정 초입':[
+            '총 기본스탯 540',
+            '주력 외공 6성 이상 + 심법 5성 이상',
+            '자신만의 전투운용과 절정급 강적 상대 성취'
+        ],
+        '화경 초입':[
+            '총 기본스탯 740',
+            '주력 외공 7성 이상 + 심법 6성 이상',
+            '개인 깨달음과 무공·내공의 일관된 운용 증명'
+        ],
+        '현경 초입':[
+            '총 기본스탯 980',
+            '주력 외공 8성 이상 + 심법 7성 이상',
+            '현경 깨달음과 고난도 실전·수련 성취'
+        ],
+        '생사경 초입':[
+            '총 기본스탯 1260',
+            '주력 외공 9성 이상 + 심법 8성 이상',
+            '생사에 대한 깨달음과 생사급 실전·수련 성취'
+        ],
+        '자연경 초입':[
+            '총 기본스탯 1660',
+            '주력 외공 10성 이상 + 심법 9성 이상',
+            '자연·도의 깨달음과 개인 무학 체계 완성'
+        ]
+    };
+
     let activeTab = 'status';
 
     let relationFilter = 'all';
@@ -9111,11 +9156,19 @@ text-shadow:0 0 7px rgba(255,215,40,.8)!important
         'exp'
     )}
 
-    ${simpleBar(
-        '다음 소경지 판정',
-        r.insightChance || 0,
-        'insight'
-    )}
+    ${
+        r.isMinorBreakthrough
+            ? simpleBar(
+                '다음 소경지 판정',
+                r.insightChance || 0,
+                'insight'
+            )
+            : `
+    <div class="row">
+        <span>다음 돌파</span>
+        <b class="insight">대경지 시험형</b>
+    </div>`
+    }
 
     <div class="muted">
         ${esc(
@@ -9536,17 +9589,21 @@ ${
                 player.realm
             );
 
+        const canonicalNextRealm =
+            currentIndex >= 0
+                ? REALM_SEQUENCE[
+                    currentIndex + 1
+                ]
+                : null;
+
         const nextRealm =
+            canonicalNextRealm ||
             stored.next ||
             guidance.nextRealm ||
-            (
-                currentIndex >= 0
-                    ? REALM_SEQUENCE[
-                        currentIndex + 1
-                    ]
-                    : null
-            ) ||
             '-';
+
+        const storedRealmInfoMatches =
+            stored.next === nextRealm;
 
         const nextIndex =
             REALM_SEQUENCE.indexOf(
@@ -9580,12 +9637,12 @@ ${
 
         const statRequired =
             realmNumber(
-                guidance.statGateRequired
-            ) ??
-            realmNumber(
                 REALM_STAT_REQUIREMENTS[
                     nextRealm
                 ]
+            ) ??
+            realmNumber(
+                guidance.statGateRequired
             );
 
         const statRemaining =
@@ -9644,9 +9701,11 @@ ${
             statCurrent >= statRequired;
 
         const storedInsightChance =
-            realmNumber(
-                stored.insightChance
-            );
+            storedRealmInfoMatches
+                ? realmNumber(
+                    stored.insightChance
+                )
+                : null;
 
         const insightChance =
             isMinorBreakthrough &&
@@ -9672,83 +9731,94 @@ ${
                         )
                 )
                 : (
-                    stored.insightText ||
-                    '대경지는 필수 조건과 돌파시험을 달성해 돌파한다.'
+                    statRemaining !== null &&
+                    statRemaining > 0
+                        ? `총 기본스탯 ${statRequired}까지 ${statRemaining} 부족 · 조건 충족 후 돌파시험을 진행한다.`
+                        : '대경지는 필수 조건과 돌파시험을 달성해 돌파한다.'
                 );
 
         return {
             ...stored,
             next: nextRealm,
             combatBonus:
-                realmNumber(
-                    stored.combatBonus
-                ) ??
                 (
                     currentIndex >= 0
                         ? REALM_COMBAT_BONUSES[
                             currentIndex
                         ]
-                        : 0
+                        : realmNumber(
+                            stored.combatBonus
+                        ) ?? 0
                 ),
             nextCombatBonus:
-                realmNumber(
-                    stored.nextCombatBonus
-                ) ??
                 (
                     nextIndex >= 0
                         ? REALM_COMBAT_BONUSES[
                             nextIndex
                         ]
-                        : 0
+                        : realmNumber(
+                            stored.nextCombatBonus
+                        ) ?? 0
                 ),
             hpRealmBonus:
+                currentResource?.[0] ??
                 realmNumber(
                     stored.hpRealmBonus
                 ) ??
-                currentResource?.[0] ??
                 0,
             qiRealmBonus:
+                currentResource?.[1] ??
                 realmNumber(
                     stored.qiRealmBonus
                 ) ??
-                currentResource?.[1] ??
                 0,
             nextHpRealmBonus:
+                nextResource?.[0] ??
                 realmNumber(
                     stored.nextHpRealmBonus
                 ) ??
-                nextResource?.[0] ??
                 0,
             nextQiRealmBonus:
+                nextResource?.[1] ??
                 realmNumber(
                     stored.nextQiRealmBonus
                 ) ??
-                nextResource?.[1] ??
                 0,
             insightChance,
             insightText,
             breakthroughType:
-                stored.breakthroughType ||
-                (
+                currentIndex >= 0 &&
+                nextIndex >= 0
+                    ? (
                     isMajorBreakthrough
                         ? '대경지 돌파시험'
                         : '소경지 깨달음'
-                ),
+                    )
+                    : stored.breakthroughType || '-',
             breakthroughLocation:
                 isMinorBreakthrough
                     ? '의미 있는 전투·실제 수련 완료'
                     : (
-                        stored.breakthroughLocation ||
-                        '무관·문파 등 정상 돌파 장소'
+                        isMajorBreakthrough
+                            ? '무관·문파·공인 수련장'
+                            : stored.breakthroughLocation || '-'
                     ),
             requirements:
+                storedRealmInfoMatches &&
                 Array.isArray(
                     stored.requirements
                 ) &&
                 stored.requirements.length
                     ? stored.requirements
                     : (
-                        statRequired !== null
+                        isMajorBreakthrough &&
+                        MAJOR_BREAKTHROUGH_REQUIREMENTS[
+                            nextRealm
+                        ]
+                            ? MAJOR_BREAKTHROUGH_REQUIREMENTS[
+                                nextRealm
+                            ]
+                            : statRequired !== null
                             ? [
                                 `총 기본스탯 ${statRequired}`
                             ]
@@ -9756,7 +9826,9 @@ ${
                     ),
             statCurrent,
             statRequired,
-            statRemaining
+            statRemaining,
+            isMinorBreakthrough,
+            isMajorBreakthrough
         };
     }
 
@@ -9876,12 +9948,10 @@ ${
     </div>
 
     <div class="row">
-        <span>다음 유효 판정 확률</span>
+        <span>${r.isMinorBreakthrough ? '다음 유효 판정 확률' : '확률 판정'}</span>
 
         <b class="insight">
-            ${esc(
-                r.insightChance || 0
-            )}%
+            ${r.isMinorBreakthrough ? `${esc(r.insightChance || 0)}%` : '사용 안 함'}
         </b>
     </div>
 
@@ -12145,7 +12215,7 @@ ${
         </div>
 
         <div class="wx-connected">
-            ● RPG UI 연결됨 · v2.19
+            ● RPG UI 연결됨 · v2.20
         </div>
 
     </div>
@@ -12633,7 +12703,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.19 · 소경지 깨달음 확률 자동 복구'
+            '[무협 RPG] 통합 UI Lite v2.20 · 현재 경지 기준 돌파 정보 자동 재계산'
         );
     }
 
