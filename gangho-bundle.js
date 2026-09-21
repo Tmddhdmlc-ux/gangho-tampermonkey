@@ -1,11 +1,9 @@
 /* 강호기행 Runtime Bundle
- * 이 파일은 Loader가 F5 때 1회 받아 실행한다.
- * 개별 Tampermonkey 메타데이터는 제거된 실행 코드만 포함한다.
- * Build: Core 2.6 / UI 2.18 / Target 3.3
+ * Loader가 F5 때 1회 받아 실행한다.
+ * Build: Core 2.6 / UI 2.18
  */
 
 /* ===== wuxia-rpg-core.user.js ===== */
-
 (function () {
     'use strict';
 
@@ -2229,7 +2227,6 @@
 })();
 
 /* ===== wuxia-rpg-session.user.js ===== */
-
 (function () {
     'use strict';
 
@@ -7130,7 +7127,6 @@ html.wuxia-rpg-logged-out
 })();
 
 /* ===== wuxia-rpg-ui.user.js ===== */
-
 (function () {
     'use strict';
 
@@ -9954,10 +9950,58 @@ ${
 </div>
 `;
 
+        const trainingCatalog =
+            [
+                ...(
+                    Array.isArray(
+                        player.training?.methods
+                    )
+                        ? player.training.methods
+                        : []
+                )
+            ];
+
+        const knownIds =
+            Array.isArray(
+                player.training?.knownTrainingMethodIds
+            )
+                ? player.training.knownTrainingMethodIds
+                : [];
+
+        for (const id of knownIds) {
+            if (trainingCatalog.some(m => m?.id === id)) continue;
+
+            const state = player.training?.transmissionStates?.[id] || {};
+            const progress = player.training?.methodProgress?.[id] || {};
+            const effective = progress.effectiveStatBonuses || state.effectiveStatBonuses || {};
+            const base = progress.baseStatBonuses || state.baseStatBonuses || effective;
+
+            const statTexts = CORE_STAT_KEYS
+                .map(key => {
+                    const value = Number(effective[key] ?? base[key] ?? 0);
+                    if (!Number.isFinite(value) || value === 0) return null;
+                    return STAT_LABELS[key] + ' ' + (value > 0 ? '+' : '') + value;
+                })
+                .filter(Boolean);
+
+            trainingCatalog.push({
+                id,
+                name: state.name || progress.name || id,
+                grade: state.grade || progress.grade || '?',
+                description: state.description || progress.description || '',
+                statBonuses: effective,
+                displayStatBonuses: statTexts,
+                uniqueEffect: progress.transmissionEffect || state.transmissionEffect || null,
+                trainingPointCost: state.trainingPointCost ?? progress.trainingPointCost ?? 1,
+                baseHours: state.baseHours ?? progress.baseHours ?? 4,
+                maxEfficientUses: state.maxEfficientUses ?? progress.maxEfficientUses ?? 10,
+                transmissionQuality: progress.transmissionQuality || state.quality || null
+            });
+        }
+
         for (
             const m
-            of player.training?.methods ||
-            []
+            of trainingCatalog
         ) {
             const progressUses =
                 player.training
@@ -10010,6 +10054,7 @@ ${
         <b class="${gradeClass(m.grade)}">
             (${esc(m.grade || '?')})
             ${esc(m.name)}
+            ${m.transmissionQuality ? '[' + esc(m.transmissionQuality) + ']' : ''}
         </b>
 
         <b style="color:#68bfff">
@@ -12557,7 +12602,6 @@ ${
 })();
 
 /* ===== wuxia-rpg-target.user.js ===== */
-
 (function () {
     'use strict';
 
@@ -15793,7 +15837,6 @@ ${body}
 })();
 
 /* ===== wuxia-rpg-portrait.user.js ===== */
-
 (function () {
     'use strict';
 
@@ -17518,7 +17561,6 @@ ${
 })();
 
 /* ===== wuxia-rpg-handoff.user.js ===== */
-
 (function () {
     'use strict';
 
