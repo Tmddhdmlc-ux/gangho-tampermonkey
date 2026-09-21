@@ -6,7 +6,7 @@
 
 1. Core Lite v2.6 — `wuxia-rpg-core.user.js`
 2. 세션 컨트롤러 v1.7 — `wuxia-rpg-session.user.js`
-3. 통합 UI Lite v2.16 — `wuxia-rpg-ui.user.js`
+3. 통합 UI Lite v2.17 — `wuxia-rpg-ui.user.js`
 4. 대상 정보창 Lite v3.2 — `wuxia-rpg-target.user.js`
 5. 초상화 UI Lite v2.3 — `wuxia-rpg-portrait.user.js`
 6. 새 채팅 이어하기 v1.3 — `wuxia-rpg-handoff.user.js`
@@ -70,3 +70,5 @@ Core v2.6은 한 assistant 응답 안에 여러 개의 `RPGENEMY` 스냅샷이 �
 통합 UI v2.15는 수련법 사용 횟수를 `training.methodProgress[methodId].uses`에서 우선 읽고, 없을 때만 카드의 `methods[].uses`를 사용한다. 수련 후 실제 누적 횟수와 카드 표시가 일치한다.
 
 통합 UI v2.16은 RPGSTATE의 `realmInfo` 또는 `guidance`가 부분 동기화에서 빠져도 현재 경지와 기본스탯으로 경지 정보를 복구한다. 경지 탭에 현재/다음 전투 5스탯 보정, 체력·내력 보너스, 다음 경지, 기초스탯 현재/필요 합계, 부족 수치, 돌파 방식과 장소를 표시한다.
+
+통합 UI v2.17은 무공 성급의 `starStatGrowth × (stars-1)` 영구 성장치를 상태창 기본 5스탯에 실제 반영한다. 세이브의 `martialMasteryPermanentBonuses`를 우선 사용하며, 없으면 무공 데이터에서 복구한다. 선천·무기·전투중 보정은 기존처럼 괄호 보정으로 분리한다.
