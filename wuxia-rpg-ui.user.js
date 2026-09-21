@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         무협 RPG 통합 UI Lite v2.16
+// @name         무협 RPG 통합 UI Lite v2.17
 // @namespace    wuxia-rpg-ui-lite
-// @version      2.16
+// @version      2.17
 // @description  이벤트형 통합 UI + 경지/돌파 조건 자체 복구 + 실적용 스탯 보정 표시
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
@@ -1569,6 +1569,61 @@ text-shadow:0 0 7px rgba(255,215,40,.8)!important
         return out;
     }
 
+    function masteryPermanentStatBonuses() {
+        const out = blankStatMap();
+
+        /*
+         * GM/세이브가 미리 파생해 준 값이 있으면 그것을 우선한다.
+         * 없으면 각 무공의 starStatGrowth × (stars-1)로 복구한다.
+         */
+        if (
+            player.martialMasteryPermanentBonuses &&
+            typeof player.martialMasteryPermanentBonuses === 'object'
+        ) {
+            mergeStatMap(
+                out,
+                player.martialMasteryPermanentBonuses
+            );
+            return out;
+        }
+
+        const groups = [
+            ...(player.martialArts?.external || []),
+            ...(player.martialArts?.internal || []),
+            ...(player.martialArts?.movement || [])
+        ];
+
+        for (const art of groups) {
+            const stars = Math.max(
+                1,
+                Number(art?.stars || 1)
+            );
+            const multiplier = Math.max(
+                0,
+                stars - 1
+            );
+
+            if (!multiplier) continue;
+
+            const growth =
+                art?.starStatGrowth ||
+                {};
+
+            for (const key of CORE_STAT_KEYS) {
+                const perStar =
+                    finiteNumber(
+                        growth[key]
+                    ) ?? 0;
+
+                out[key] +=
+                    perStar *
+                    multiplier;
+            }
+        }
+
+        return out;
+    }
+
     function combatStatBonuses() {
         const out = blankStatMap();
 
@@ -1586,13 +1641,26 @@ text-shadow:0 0 7px rgba(255,215,40,.8)!important
     }
 
     function statBreakdown(key) {
-        const base = finiteNumber(player.stats?.[key]) ?? 0;
+        const rawBase = finiteNumber(player.stats?.[key]) ?? 0;
+        const masteryPermanent =
+            masteryPermanentStatBonuses()[key] || 0;
+
+        /*
+         * 무공 성급 성장치는 영구 성장치라 상태창의 기본값에 포함한다.
+         * 선천/무기/전투중 보정만 괄호 보정으로 남긴다.
+         */
+        const base =
+            rawBase +
+            masteryPermanent;
+
         const passive = passiveStatBonuses()[key] || 0;
         const weapon = weaponStatBonuses()[key] || 0;
         const combat = combatStatBonuses()[key] || 0;
         const bonus = passive + weapon + combat;
 
         return {
+            rawBase,
+            masteryPermanent,
             base,
             passive,
             weapon,
@@ -1615,6 +1683,7 @@ text-shadow:0 0 7px rgba(255,215,40,.8)!important
 
     function activeBonusSummary() {
         const pieces = [];
+        const masteryPermanent = masteryPermanentStatBonuses();
         const passive = passiveStatBonuses();
         const weapon = weaponStatBonuses();
         const combat = combatStatBonuses();
@@ -1626,6 +1695,7 @@ text-shadow:0 0 7px rgba(255,215,40,.8)!important
             if (parts.length) pieces.push(`${label}: ${parts.join(' · ')}`);
         }
 
+        add('성급 성장', masteryPermanent);
         add('선천', passive);
         add('무기', weapon);
         if (enemyState?.active) add('전투중', combat);
@@ -4777,7 +4847,7 @@ ${
         </div>
 
         <div class="wx-connected">
-            ● RPG UI 연결됨 · v2.16
+            ● RPG UI 연결됨 · v2.17
         </div>
 
     </div>
@@ -5265,7 +5335,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.16 · 경지/돌파 조건 자체 복구'
+            '[무협 RPG] 통합 UI Lite v2.17 · 경지/돌파 조건 자체 복구'
         );
     }
 
