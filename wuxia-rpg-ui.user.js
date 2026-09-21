@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         무협 RPG 통합 UI Lite v2.18
+// @name         무협 RPG 통합 UI Lite v2.19
 // @namespace    wuxia-rpg-ui-lite
-// @version      2.18
-// @description  이벤트형 통합 UI + 무공 성급 영구 상승 스탯 + 경지/돌파 조건 표시
+// @version      2.19
+// @description  이벤트형 통합 UI + 소경지 깨달음 확률 자동 복구 + 경지/돌파 조건 표시
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
 // @updateURL    https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-ui.user.js
@@ -99,6 +99,9 @@
         '생사경 초입':1260,'생사경 완숙':1380,'생사경 극':1500,
         '자연경 초입':1660,'자연경 완숙':1840,'자연경 극':2020
     };
+
+    const MINOR_REALM_BASE_INSIGHT_CHANCE = 30;
+    const MINOR_REALM_MAX_INSIGHT_CHANCE = 50;
 
     let activeTab = 'status';
 
@@ -1993,7 +1996,7 @@ text-shadow:0 0 7px rgba(255,215,40,.8)!important
     )}
 
     ${simpleBar(
-        '깨달음 확률',
+        '다음 소경지 판정',
         r.insightChance || 0,
         'insight'
     )}
@@ -2454,10 +2457,10 @@ ${
                 : null;
 
         const statCurrent =
+            calculatedStatTotal ??
             realmNumber(
                 guidance.statGateCurrent
-            ) ??
-            calculatedStatTotal;
+            );
 
         const statRequired =
             realmNumber(
@@ -2504,6 +2507,58 @@ ${
                 nextRealm ||
                 ''
             ).split(' ')[0];
+
+        const isMajorBreakthrough =
+            Boolean(
+                currentMajor &&
+                nextMajor &&
+                currentMajor !== nextMajor
+            );
+
+        const isMinorBreakthrough =
+            Boolean(
+                currentMajor &&
+                nextMajor &&
+                currentMajor === nextMajor
+            );
+
+        const statGateMet =
+            statCurrent !== null &&
+            statRequired !== null &&
+            statCurrent >= statRequired;
+
+        const storedInsightChance =
+            realmNumber(
+                stored.insightChance
+            );
+
+        const insightChance =
+            isMinorBreakthrough &&
+            statGateMet
+                ? Math.min(
+                    MINOR_REALM_MAX_INSIGHT_CHANCE,
+                    Math.max(
+                        MINOR_REALM_BASE_INSIGHT_CHANCE,
+                        storedInsightChance ?? 0
+                    )
+                )
+                : 0;
+
+        const insightText =
+            isMinorBreakthrough
+                ? (
+                    statGateMet
+                        ? `스탯 조건 ${statCurrent}/${statRequired} 충족 · 의미 있는 전투 또는 실제 수련 완료 시 1회 판정 (기본 ${MINOR_REALM_BASE_INSIGHT_CHANCE}%).`
+                        : (
+                            statRequired !== null
+                                ? `총 기본스탯 ${statRequired} 달성 후 의미 있는 전투 또는 실제 수련 완료 시 깨달음을 판정한다.`
+                                : '스탯 조건 충족 후 의미 있는 전투 또는 실제 수련 완료 시 깨달음을 판정한다.'
+                        )
+                )
+                : (
+                    stored.insightText ||
+                    '대경지는 필수 조건과 돌파시험을 달성해 돌파한다.'
+                );
 
         return {
             ...stored,
@@ -2554,36 +2609,22 @@ ${
                 ) ??
                 nextResource?.[1] ??
                 0,
-            insightChance:
-                realmNumber(
-                    stored.insightChance
-                ) ??
-                0,
-            insightText:
-                stored.insightText ||
-                (
-                    statRequired !== null
-                        ? `총 기본스탯 ${statRequired} 달성 후 의미 있는 실전·수련에서 깨달음을 판정한다.`
-                        : ''
-                ),
+            insightChance,
+            insightText,
             breakthroughType:
                 stored.breakthroughType ||
                 (
-                    currentMajor &&
-                    nextMajor &&
-                    currentMajor !== nextMajor
+                    isMajorBreakthrough
                         ? '대경지 돌파시험'
                         : '소경지 깨달음'
                 ),
             breakthroughLocation:
-                stored.breakthroughLocation ||
-                (
-                    currentMajor &&
-                    nextMajor &&
-                    currentMajor !== nextMajor
-                        ? '무관·문파 등 정상 돌파 장소'
-                        : '의미 있는 실전·수련'
-                ),
+                isMinorBreakthrough
+                    ? '의미 있는 전투·실제 수련 완료'
+                    : (
+                        stored.breakthroughLocation ||
+                        '무관·문파 등 정상 돌파 장소'
+                    ),
             requirements:
                 Array.isArray(
                     stored.requirements
@@ -2719,7 +2760,7 @@ ${
     </div>
 
     <div class="row">
-        <span>현재 확률</span>
+        <span>다음 유효 판정 확률</span>
 
         <b class="insight">
             ${esc(
@@ -4988,7 +5029,7 @@ ${
         </div>
 
         <div class="wx-connected">
-            ● RPG UI 연결됨 · v2.18
+            ● RPG UI 연결됨 · v2.19
         </div>
 
     </div>
@@ -5476,7 +5517,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.18 · 성급 상승 스탯 표시'
+            '[무협 RPG] 통합 UI Lite v2.19 · 소경지 깨달음 확률 자동 복구'
         );
     }
 
