@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         무협 RPG 통합 UI Lite v2.17
+// @name         무협 RPG 통합 UI Lite v2.18
 // @namespace    wuxia-rpg-ui-lite
-// @version      2.17
-// @description  이벤트형 통합 UI + 경지/돌파 조건 자체 복구 + 실적용 스탯 보정 표시
+// @version      2.18
+// @description  이벤트형 통합 UI + 무공 성급 영구 상승 스탯 + 경지/돌파 조건 표시
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
 // @updateURL    https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-ui.user.js
@@ -1223,6 +1223,21 @@ border-radius:10px!important;
 background:rgba(255,255,255,.035)!important
 }
 
+.art-star-growth{
+margin-top:7px!important;
+padding:7px 8px!important;
+border:1px solid rgba(192,139,255,.22)!important;
+border-radius:8px!important;
+background:rgba(132,82,190,.08)!important;
+font-size:10px!important;
+line-height:1.55!important;
+color:#d8c1ff!important
+}
+
+.art-star-growth .current{
+color:#aaa4b4!important
+}
+
 .bag-card.equipped{
 border-color:rgba(92,219,134,.28)!important;
 background:rgba(55,150,90,.07)!important
@@ -1576,13 +1591,17 @@ text-shadow:0 0 7px rgba(255,215,40,.8)!important
          * GM/세이브가 미리 파생해 준 값이 있으면 그것을 우선한다.
          * 없으면 각 무공의 starStatGrowth × (stars-1)로 복구한다.
          */
+        const savedMastery =
+            player.martialMasteryPermanentBonuses ||
+            player.martialMasteryPermanentBonus;
+
         if (
-            player.martialMasteryPermanentBonuses &&
-            typeof player.martialMasteryPermanentBonuses === 'object'
+            savedMastery &&
+            typeof savedMastery === 'object'
         ) {
             mergeStatMap(
                 out,
-                player.martialMasteryPermanentBonuses
+                savedMastery
             );
             return out;
         }
@@ -1646,12 +1665,15 @@ text-shadow:0 0 7px rgba(255,215,40,.8)!important
             masteryPermanentStatBonuses()[key] || 0;
 
         /*
-         * 무공 성급 성장치는 영구 성장치라 상태창의 기본값에 포함한다.
-         * 선천/무기/전투중 보정만 괄호 보정으로 남긴다.
+         * statModelVersion 2의 stats에는 성급 영구 성장치가 이미 포함된다.
+         * 구형 데이터만 성급 성장치를 더해 복구해 중복 합산을 막는다.
          */
-        const base =
-            rawBase +
-            masteryPermanent;
+        const storedIncludesMastery =
+            Number(player.statModelVersion || 0) >= 2 ||
+            player.baseStats !== undefined;
+        const base = storedIncludesMastery
+            ? rawBase
+            : rawBase + masteryPermanent;
 
         const passive = passiveStatBonuses()[key] || 0;
         const weapon = weaponStatBonuses()[key] || 0;
@@ -2171,6 +2193,40 @@ ${
             art.star ??
             '?';
 
+        const numericStars = finiteNumber(stars);
+        const starGrowth =
+            art.starStatGrowth &&
+            typeof art.starStatGrowth === 'object' &&
+            !Array.isArray(art.starStatGrowth)
+                ? art.starStatGrowth
+                : {};
+        const nextStarGrowth = [];
+        const currentStarGrowth = [];
+        const savedPermanent =
+            art.permanentStatBonus &&
+            typeof art.permanentStatBonus === 'object'
+                ? art.permanentStatBonus
+                : null;
+
+        for (const key of coreKeys) {
+            const perStar = finiteNumber(starGrowth[key]) ?? 0;
+            if (perStar === 0) continue;
+
+            nextStarGrowth.push(
+                `${STAT_LABELS[key]} ${perStar > 0 ? '+' : ''}${perStar}`
+            );
+
+            const accumulated = savedPermanent
+                ? finiteNumber(savedPermanent[key]) ?? 0
+                : perStar * Math.max(0, (numericStars ?? 1) - 1);
+
+            if (accumulated !== 0) {
+                currentStarGrowth.push(
+                    `${STAT_LABELS[key]} ${accumulated > 0 ? '+' : ''}${accumulated}`
+                );
+            }
+        }
+
         const damage =
             artDamageDisplay(
                 art,
@@ -2230,6 +2286,26 @@ ${
             ? `
 <div class="muted" style="margin-top:7px;line-height:1.55">
     ${esc(art.description)}
+</div>
+`
+            : ''
+    }
+
+    ${
+        nextStarGrowth.length
+            ? `
+<div class="art-star-growth">
+    <b>성급 영구 성장</b><br>
+    ${
+        numericStars !== null && numericStars >= 12
+            ? `최대 성급 완성: ${esc(nextStarGrowth.join(' · '))}씩 성장 완료`
+            : `다음 성급 영구 상승: ${esc(nextStarGrowth.join(' · '))}`
+    }
+    ${
+        currentStarGrowth.length
+            ? `<br><span class="current">현재 성급 누적: ${esc(currentStarGrowth.join(' · '))}</span>`
+            : ''
+    }
 </div>
 `
             : ''
@@ -3965,6 +4041,11 @@ ${
 
             mode: 'npc',
 
+            characterId:
+                npc.characterId ||
+                npc.id ||
+                null,
+
             name:
                 npc.name ||
                 '정체불명 인물',
@@ -4010,6 +4091,16 @@ ${
             maxQi:
                 npc.maxQi ??
                 null,
+
+            resourceStats:
+                npc.resourceStats ||
+                npc.baseStats ||
+                npc.stats ||
+                null,
+
+            realmResourceApplied:
+                npc.realmResourceApplied ===
+                true,
 
             status:
                 npc.status ||
@@ -4847,7 +4938,7 @@ ${
         </div>
 
         <div class="wx-connected">
-            ● RPG UI 연결됨 · v2.17
+            ● RPG UI 연결됨 · v2.18
         </div>
 
     </div>
@@ -5335,7 +5426,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.17 · 경지/돌파 조건 자체 복구'
+            '[무협 RPG] 통합 UI Lite v2.18 · 성급 상승 스탯 표시'
         );
     }
 

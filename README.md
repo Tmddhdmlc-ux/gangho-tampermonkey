@@ -6,8 +6,8 @@
 
 1. Core Lite v2.6 — `wuxia-rpg-core.user.js`
 2. 세션 컨트롤러 v1.7 — `wuxia-rpg-session.user.js`
-3. 통합 UI Lite v2.17 — `wuxia-rpg-ui.user.js`
-4. 대상 정보창 Lite v3.2 — `wuxia-rpg-target.user.js`
+3. 통합 UI Lite v2.18 — `wuxia-rpg-ui.user.js`
+4. 대상 정보창 Lite v3.3 — `wuxia-rpg-target.user.js`
 5. 초상화 UI Lite v2.3 — `wuxia-rpg-portrait.user.js`
 6. 새 채팅 이어하기 v1.3 — `wuxia-rpg-handoff.user.js`
 
@@ -72,3 +72,7 @@ Core v2.6은 한 assistant 응답 안에 여러 개의 `RPGENEMY` 스냅샷이 �
 통합 UI v2.16은 RPGSTATE의 `realmInfo` 또는 `guidance`가 부분 동기화에서 빠져도 현재 경지와 기본스탯으로 경지 정보를 복구한다. 경지 탭에 현재/다음 전투 5스탯 보정, 체력·내력 보너스, 다음 경지, 기초스탯 현재/필요 합계, 부족 수치, 돌파 방식과 장소를 표시한다.
 
 통합 UI v2.17은 무공 성급의 `starStatGrowth × (stars-1)` 영구 성장치를 상태창 기본 5스탯에 실제 반영한다. 세이브의 `martialMasteryPermanentBonuses`를 우선 사용하며, 없으면 무공 데이터에서 복구한다. 선천·무기·전투중 보정은 기존처럼 괄호 보정으로 분리한다.
+
+통합 UI v2.18은 외공·심법·경공 카드의 무공 설명 아래에 `다음 성급 영구 상승` 스탯과 현재 성급까지의 `현재 성급 누적`을 표시한다. 12성은 최대 성급 완성으로 표시한다. `statModelVersion 2`의 `stats`에 이미 포함된 성급 영구 성장치를 UI가 다시 더하지 않도록 중복 합산도 차단한다.
+
+대상 정보창 v3.3은 비전투 NPC의 체력·내력에도 경지 자원 보너스를 적용한다. 전달된 최대치가 해당 경지의 절대 최소치보다 낮으면 누락된 보너스를 보정하고, 기초 체질·내공이 전달된 경우 `200 + 체질×10 + 경지 체력 보너스`, `100 + 내공×6 + 경지 내력 보너스`로 복구한다. 전투 중 적의 정확한 현재 수치는 변경하지 않는다.

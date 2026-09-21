@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         무협 RPG 대상 정보창 Lite v3.2
+// @name         무협 RPG 대상 정보창 Lite v3.3
 // @namespace    wuxia-rpg-target-lite
-// @version      3.2
-// @description  이벤트형 대상창 - 종료 스냅샷 적 전원/다중 적 동시 표시/저부하
+// @version      3.3
+// @description  이벤트형 대상창 - NPC 경지 체력·내력 보정/다중 적 동시 표시/저부하
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
 // @updateURL    https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-target.user.js
@@ -34,6 +34,36 @@
 
     const MODE_KEY =
         'wuxia_rpg_target_uimode_v1';
+
+    const REALM_RESOURCE_BONUSES = {
+        '삼류 초입': {hp:0,qi:0},
+        '삼류 완숙': {hp:0,qi:0},
+        '삼류 극': {hp:0,qi:0},
+        '이류 초입': {hp:500,qi:200},
+        '이류 완숙': {hp:650,qi:260},
+        '이류 극': {hp:800,qi:320},
+        '일류 초입': {hp:1200,qi:450},
+        '일류 완숙': {hp:1450,qi:550},
+        '일류 극': {hp:1700,qi:650},
+        '절정 초입': {hp:2400,qi:900},
+        '절정 완숙': {hp:2800,qi:1100},
+        '절정 극': {hp:3200,qi:1300},
+        '초절정 초입': {hp:3800,qi:1700},
+        '초절정 완숙': {hp:4300,qi:2000},
+        '초절정 극': {hp:4800,qi:2300},
+        '화경 초입': {hp:5200,qi:2800},
+        '화경 완숙': {hp:6000,qi:3300},
+        '화경 극': {hp:6800,qi:3800},
+        '현경 초입': {hp:8000,qi:4800},
+        '현경 완숙': {hp:9000,qi:5600},
+        '현경 극': {hp:10000,qi:6400},
+        '생사경 초입': {hp:12000,qi:8000},
+        '생사경 완숙': {hp:13500,qi:9500},
+        '생사경 극': {hp:15000,qi:11000},
+        '자연경 초입': {hp:18000,qi:13000},
+        '자연경 완숙': {hp:21000,qi:15500},
+        '자연경 극': {hp:24000,qi:18000}
+    };
 
     let target =
         readTarget();
@@ -87,7 +117,7 @@
     }
 
     function readTarget() {
-        return (
+        const parsed = (
             parse(
                 localStorage.getItem(
                     TARGET_KEY
@@ -99,6 +129,75 @@
                 active: false
             }
         );
+
+        return normalizeNpcResources(parsed);
+    }
+
+    function finiteResource(value) {
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    function normalizeNpcResources(data) {
+        if (!data || data.mode === 'enemy') return data;
+
+        const bonus = REALM_RESOURCE_BONUSES[data.realm];
+        if (!bonus) return data;
+
+        const normalized = {...data};
+        const stats =
+            data.resourceStats ||
+            data.baseStats ||
+            data.stats ||
+            {};
+        const constitution = finiteResource(stats.constitution);
+        const innerPower = finiteResource(stats.innerPower);
+        let hp = finiteResource(data.hp);
+        let maxHp = finiteResource(data.maxHp);
+        let qi = finiteResource(data.qi);
+        let maxQi = finiteResource(data.maxQi);
+
+        if (maxHp === null && constitution !== null) {
+            maxHp = 200 + constitution * 10 + bonus.hp;
+            if (hp === null && String(data.status || '').includes('정상')) {
+                hp = maxHp;
+            }
+        } else if (
+            maxHp !== null &&
+            bonus.hp > 0 &&
+            data.realmResourceApplied !== true &&
+            maxHp < 200 + bonus.hp
+        ) {
+            maxHp += bonus.hp;
+            if (hp !== null) hp = Math.min(maxHp, hp + bonus.hp);
+        }
+
+        if (maxQi === null && innerPower !== null) {
+            maxQi = 100 + innerPower * 6 + bonus.qi;
+            if (qi === null && String(data.status || '').includes('정상')) {
+                qi = maxQi;
+            }
+        } else if (
+            maxQi !== null &&
+            bonus.qi > 0 &&
+            data.realmResourceApplied !== true &&
+            maxQi < 100 + bonus.qi
+        ) {
+            maxQi += bonus.qi;
+            if (qi !== null) qi = Math.min(maxQi, qi + bonus.qi);
+        }
+
+        normalized.hp = hp;
+        normalized.maxHp = maxHp;
+        normalized.qi = qi;
+        normalized.maxQi = maxQi;
+        normalized.realmResourceApplied = true;
+
+        return normalized;
     }
 
     function readEnemies() {
@@ -3114,7 +3213,7 @@ ${body}
         );
 
         console.log(
-            '[무협 RPG] 대상 정보창 Lite v3.2 · 종료 스냅샷 적 전원 표시'
+            '[무협 RPG] 대상 정보창 Lite v3.3 · NPC 경지 자원 보정'
         );
     }
 

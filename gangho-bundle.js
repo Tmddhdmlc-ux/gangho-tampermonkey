@@ -1,10 +1,11 @@
 /* 강호기행 Runtime Bundle
  * 이 파일은 Loader가 F5 때 1회 받아 실행한다.
  * 개별 Tampermonkey 메타데이터는 제거된 실행 코드만 포함한다.
- * Build: Core 2.6 / UI 2.17
+ * Build: Core 2.6 / UI 2.18 / Target 3.3
  */
 
 /* ===== wuxia-rpg-core.user.js ===== */
+
 (function () {
     'use strict';
 
@@ -2228,6 +2229,7 @@
 })();
 
 /* ===== wuxia-rpg-session.user.js ===== */
+
 (function () {
     'use strict';
 
@@ -7128,6 +7130,7 @@ html.wuxia-rpg-logged-out
 })();
 
 /* ===== wuxia-rpg-ui.user.js ===== */
+
 (function () {
     'use strict';
 
@@ -8340,6 +8343,21 @@ border-radius:10px!important;
 background:rgba(255,255,255,.035)!important
 }
 
+.art-star-growth{
+margin-top:7px!important;
+padding:7px 8px!important;
+border:1px solid rgba(192,139,255,.22)!important;
+border-radius:8px!important;
+background:rgba(132,82,190,.08)!important;
+font-size:10px!important;
+line-height:1.55!important;
+color:#d8c1ff!important
+}
+
+.art-star-growth .current{
+color:#aaa4b4!important
+}
+
 .bag-card.equipped{
 border-color:rgba(92,219,134,.28)!important;
 background:rgba(55,150,90,.07)!important
@@ -8693,13 +8711,17 @@ text-shadow:0 0 7px rgba(255,215,40,.8)!important
          * GM/세이브가 미리 파생해 준 값이 있으면 그것을 우선한다.
          * 없으면 각 무공의 starStatGrowth × (stars-1)로 복구한다.
          */
+        const savedMastery =
+            player.martialMasteryPermanentBonuses ||
+            player.martialMasteryPermanentBonus;
+
         if (
-            player.martialMasteryPermanentBonuses &&
-            typeof player.martialMasteryPermanentBonuses === 'object'
+            savedMastery &&
+            typeof savedMastery === 'object'
         ) {
             mergeStatMap(
                 out,
-                player.martialMasteryPermanentBonuses
+                savedMastery
             );
             return out;
         }
@@ -8763,12 +8785,15 @@ text-shadow:0 0 7px rgba(255,215,40,.8)!important
             masteryPermanentStatBonuses()[key] || 0;
 
         /*
-         * 무공 성급 성장치는 영구 성장치라 상태창의 기본값에 포함한다.
-         * 선천/무기/전투중 보정만 괄호 보정으로 남긴다.
+         * statModelVersion 2의 stats에는 성급 영구 성장치가 이미 포함된다.
+         * 구형 데이터만 성급 성장치를 더해 복구해 중복 합산을 막는다.
          */
-        const base =
-            rawBase +
-            masteryPermanent;
+        const storedIncludesMastery =
+            Number(player.statModelVersion || 0) >= 2 ||
+            player.baseStats !== undefined;
+        const base = storedIncludesMastery
+            ? rawBase
+            : rawBase + masteryPermanent;
 
         const passive = passiveStatBonuses()[key] || 0;
         const weapon = weaponStatBonuses()[key] || 0;
@@ -9288,6 +9313,40 @@ ${
             art.star ??
             '?';
 
+        const numericStars = finiteNumber(stars);
+        const starGrowth =
+            art.starStatGrowth &&
+            typeof art.starStatGrowth === 'object' &&
+            !Array.isArray(art.starStatGrowth)
+                ? art.starStatGrowth
+                : {};
+        const nextStarGrowth = [];
+        const currentStarGrowth = [];
+        const savedPermanent =
+            art.permanentStatBonus &&
+            typeof art.permanentStatBonus === 'object'
+                ? art.permanentStatBonus
+                : null;
+
+        for (const key of coreKeys) {
+            const perStar = finiteNumber(starGrowth[key]) ?? 0;
+            if (perStar === 0) continue;
+
+            nextStarGrowth.push(
+                `${STAT_LABELS[key]} ${perStar > 0 ? '+' : ''}${perStar}`
+            );
+
+            const accumulated = savedPermanent
+                ? finiteNumber(savedPermanent[key]) ?? 0
+                : perStar * Math.max(0, (numericStars ?? 1) - 1);
+
+            if (accumulated !== 0) {
+                currentStarGrowth.push(
+                    `${STAT_LABELS[key]} ${accumulated > 0 ? '+' : ''}${accumulated}`
+                );
+            }
+        }
+
         const damage =
             artDamageDisplay(
                 art,
@@ -9347,6 +9406,26 @@ ${
             ? `
 <div class="muted" style="margin-top:7px;line-height:1.55">
     ${esc(art.description)}
+</div>
+`
+            : ''
+    }
+
+    ${
+        nextStarGrowth.length
+            ? `
+<div class="art-star-growth">
+    <b>성급 영구 성장</b><br>
+    ${
+        numericStars !== null && numericStars >= 12
+            ? `최대 성급 완성: ${esc(nextStarGrowth.join(' · '))}씩 성장 완료`
+            : `다음 성급 영구 상승: ${esc(nextStarGrowth.join(' · '))}`
+    }
+    ${
+        currentStarGrowth.length
+            ? `<br><span class="current">현재 성급 누적: ${esc(currentStarGrowth.join(' · '))}</span>`
+            : ''
+    }
 </div>
 `
             : ''
@@ -11082,6 +11161,11 @@ ${
 
             mode: 'npc',
 
+            characterId:
+                npc.characterId ||
+                npc.id ||
+                null,
+
             name:
                 npc.name ||
                 '정체불명 인물',
@@ -11127,6 +11211,16 @@ ${
             maxQi:
                 npc.maxQi ??
                 null,
+
+            resourceStats:
+                npc.resourceStats ||
+                npc.baseStats ||
+                npc.stats ||
+                null,
+
+            realmResourceApplied:
+                npc.realmResourceApplied ===
+                true,
 
             status:
                 npc.status ||
@@ -11964,7 +12058,7 @@ ${
         </div>
 
         <div class="wx-connected">
-            ● RPG UI 연결됨 · v2.17
+            ● RPG UI 연결됨 · v2.18
         </div>
 
     </div>
@@ -12452,7 +12546,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.17 · 경지/돌파 조건 자체 복구'
+            '[무협 RPG] 통합 UI Lite v2.18 · 성급 상승 스탯 표시'
         );
     }
 
@@ -12462,6 +12556,7 @@ ${
 })();
 
 /* ===== wuxia-rpg-target.user.js ===== */
+
 (function () {
     'use strict';
 
@@ -12485,6 +12580,36 @@ ${
 
     const MODE_KEY =
         'wuxia_rpg_target_uimode_v1';
+
+    const REALM_RESOURCE_BONUSES = {
+        '삼류 초입': {hp:0,qi:0},
+        '삼류 완숙': {hp:0,qi:0},
+        '삼류 극': {hp:0,qi:0},
+        '이류 초입': {hp:500,qi:200},
+        '이류 완숙': {hp:650,qi:260},
+        '이류 극': {hp:800,qi:320},
+        '일류 초입': {hp:1200,qi:450},
+        '일류 완숙': {hp:1450,qi:550},
+        '일류 극': {hp:1700,qi:650},
+        '절정 초입': {hp:2400,qi:900},
+        '절정 완숙': {hp:2800,qi:1100},
+        '절정 극': {hp:3200,qi:1300},
+        '초절정 초입': {hp:3800,qi:1700},
+        '초절정 완숙': {hp:4300,qi:2000},
+        '초절정 극': {hp:4800,qi:2300},
+        '화경 초입': {hp:5200,qi:2800},
+        '화경 완숙': {hp:6000,qi:3300},
+        '화경 극': {hp:6800,qi:3800},
+        '현경 초입': {hp:8000,qi:4800},
+        '현경 완숙': {hp:9000,qi:5600},
+        '현경 극': {hp:10000,qi:6400},
+        '생사경 초입': {hp:12000,qi:8000},
+        '생사경 완숙': {hp:13500,qi:9500},
+        '생사경 극': {hp:15000,qi:11000},
+        '자연경 초입': {hp:18000,qi:13000},
+        '자연경 완숙': {hp:21000,qi:15500},
+        '자연경 극': {hp:24000,qi:18000}
+    };
 
     let target =
         readTarget();
@@ -12538,7 +12663,7 @@ ${
     }
 
     function readTarget() {
-        return (
+        const parsed = (
             parse(
                 localStorage.getItem(
                     TARGET_KEY
@@ -12550,6 +12675,75 @@ ${
                 active: false
             }
         );
+
+        return normalizeNpcResources(parsed);
+    }
+
+    function finiteResource(value) {
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    function normalizeNpcResources(data) {
+        if (!data || data.mode === 'enemy') return data;
+
+        const bonus = REALM_RESOURCE_BONUSES[data.realm];
+        if (!bonus) return data;
+
+        const normalized = {...data};
+        const stats =
+            data.resourceStats ||
+            data.baseStats ||
+            data.stats ||
+            {};
+        const constitution = finiteResource(stats.constitution);
+        const innerPower = finiteResource(stats.innerPower);
+        let hp = finiteResource(data.hp);
+        let maxHp = finiteResource(data.maxHp);
+        let qi = finiteResource(data.qi);
+        let maxQi = finiteResource(data.maxQi);
+
+        if (maxHp === null && constitution !== null) {
+            maxHp = 200 + constitution * 10 + bonus.hp;
+            if (hp === null && String(data.status || '').includes('정상')) {
+                hp = maxHp;
+            }
+        } else if (
+            maxHp !== null &&
+            bonus.hp > 0 &&
+            data.realmResourceApplied !== true &&
+            maxHp < 200 + bonus.hp
+        ) {
+            maxHp += bonus.hp;
+            if (hp !== null) hp = Math.min(maxHp, hp + bonus.hp);
+        }
+
+        if (maxQi === null && innerPower !== null) {
+            maxQi = 100 + innerPower * 6 + bonus.qi;
+            if (qi === null && String(data.status || '').includes('정상')) {
+                qi = maxQi;
+            }
+        } else if (
+            maxQi !== null &&
+            bonus.qi > 0 &&
+            data.realmResourceApplied !== true &&
+            maxQi < 100 + bonus.qi
+        ) {
+            maxQi += bonus.qi;
+            if (qi !== null) qi = Math.min(maxQi, qi + bonus.qi);
+        }
+
+        normalized.hp = hp;
+        normalized.maxHp = maxHp;
+        normalized.qi = qi;
+        normalized.maxQi = maxQi;
+        normalized.realmResourceApplied = true;
+
+        return normalized;
     }
 
     function readEnemies() {
@@ -15565,7 +15759,7 @@ ${body}
         );
 
         console.log(
-            '[무협 RPG] 대상 정보창 Lite v3.2 · 종료 스냅샷 적 전원 표시'
+            '[무협 RPG] 대상 정보창 Lite v3.3 · NPC 경지 자원 보정'
         );
     }
 
@@ -15575,6 +15769,7 @@ ${body}
 })();
 
 /* ===== wuxia-rpg-portrait.user.js ===== */
+
 (function () {
     'use strict';
 
@@ -17299,6 +17494,7 @@ ${
 })();
 
 /* ===== wuxia-rpg-handoff.user.js ===== */
+
 (function () {
     'use strict';
 
