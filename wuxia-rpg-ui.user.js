@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         무협 RPG 통합 UI Lite v2.20
+// @name         무협 RPG 통합 UI Lite v2.21
 // @namespace    wuxia-rpg-ui-lite
-// @version      2.20
-// @description  이벤트형 통합 UI + 현재 경지 기준 돌파 정보 자동 재계산
+// @version      2.21
+// @description  이벤트형 통합 UI + 본편 정본 경지 1회 복구 + 돌파 정보 자동 재계산
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
 // @updateURL    https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-ui.user.js
@@ -148,6 +148,15 @@
         ]
     };
 
+    const CANONICAL_REALM_REPAIR = {
+        campaignId:
+            'main-20260920-2241',
+        characterName:
+            '화월',
+        realm:
+            '삼류 극'
+    };
+
     let activeTab = 'status';
 
     let relationFilter = 'all';
@@ -199,8 +208,98 @@
     }
 
 
+    function repairCanonicalRealm(value) {
+        if (
+            !value ||
+            value.name !==
+                CANONICAL_REALM_REPAIR.characterName ||
+            value.meta?.campaignId !==
+                CANONICAL_REALM_REPAIR.campaignId
+        ) {
+            return value;
+        }
+
+        const currentIndex =
+            REALM_SEQUENCE.indexOf(
+                value.realm
+            );
+
+        const canonicalIndex =
+            REALM_SEQUENCE.indexOf(
+                CANONICAL_REALM_REPAIR.realm
+            );
+
+        if (
+            currentIndex >= canonicalIndex
+        ) {
+            return value;
+        }
+
+        const statTotal =
+            CORE_STAT_KEYS.reduce(
+                (sum,key) =>
+                    sum +
+                    finiteNumber(
+                        value.stats?.[key]
+                    ),
+                0
+            );
+
+        const repaired = {
+            ...value,
+            realm:
+                CANONICAL_REALM_REPAIR.realm,
+            realmInfo: {
+                ...(value.realmInfo || {}),
+                next:'이류 초입',
+                combatBonus:10,
+                nextCombatBonus:40,
+                hpRealmBonus:0,
+                qiRealmBonus:0,
+                nextHpRealmBonus:500,
+                nextQiRealmBonus:200,
+                insightChance:0,
+                insightText:
+                    `총 기본스탯 130까지 ${Math.max(0,130 - statTotal)} 부족 · 조건 충족 후 돌파시험을 진행한다.`,
+                breakthroughType:
+                    '대경지 돌파시험',
+                breakthroughLocation:
+                    '무관·문파·공인 수련장',
+                requirements:
+                    [...MAJOR_BREAKTHROUGH_REQUIREMENTS['이류 초입']]
+            },
+            guidance: {
+                ...(value.guidance || {}),
+                currentRealm:'삼류 극',
+                nextRealm:'이류 초입',
+                statGateCurrent:
+                    statTotal,
+                statGateRequired:130,
+                statGateRemaining:
+                    Math.max(
+                        0,
+                        130 - statTotal
+                    )
+            }
+        };
+
+        try {
+            localStorage.setItem(
+                PLAYER_KEY,
+                JSON.stringify(repaired)
+            );
+        } catch (_) {}
+
+        console.info(
+            '[무협 RPG] 본편 정본 경지 복구: 삼류 극'
+        );
+
+        return repaired;
+    }
+
+
     function readPlayer() {
-        return (
+        return repairCanonicalRealm(
             parse(
                 localStorage.getItem(PLAYER_KEY),
                 {}
@@ -5099,7 +5198,7 @@ ${
         </div>
 
         <div class="wx-connected">
-            ● RPG UI 연결됨 · v2.20
+            ● RPG UI 연결됨 · v2.21
         </div>
 
     </div>
@@ -5587,7 +5686,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.20 · 현재 경지 기준 돌파 정보 자동 재계산'
+            '[무협 RPG] 통합 UI Lite v2.21 · 본편 정본 경지 복구'
         );
     }
 
