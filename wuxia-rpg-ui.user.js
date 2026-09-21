@@ -2834,10 +2834,58 @@ ${
 </div>
 `;
 
+        const trainingCatalog =
+            [
+                ...(
+                    Array.isArray(
+                        player.training?.methods
+                    )
+                        ? player.training.methods
+                        : []
+                )
+            ];
+
+        const knownIds =
+            Array.isArray(
+                player.training?.knownTrainingMethodIds
+            )
+                ? player.training.knownTrainingMethodIds
+                : [];
+
+        for (const id of knownIds) {
+            if (trainingCatalog.some(m => m?.id === id)) continue;
+
+            const state = player.training?.transmissionStates?.[id] || {};
+            const progress = player.training?.methodProgress?.[id] || {};
+            const effective = progress.effectiveStatBonuses || state.effectiveStatBonuses || {};
+            const base = progress.baseStatBonuses || state.baseStatBonuses || effective;
+
+            const statTexts = CORE_STAT_KEYS
+                .map(key => {
+                    const value = Number(effective[key] ?? base[key] ?? 0);
+                    if (!Number.isFinite(value) || value === 0) return null;
+                    return STAT_LABELS[key] + ' ' + (value > 0 ? '+' : '') + value;
+                })
+                .filter(Boolean);
+
+            trainingCatalog.push({
+                id,
+                name: state.name || progress.name || id,
+                grade: state.grade || progress.grade || '?',
+                description: state.description || progress.description || '',
+                statBonuses: effective,
+                displayStatBonuses: statTexts,
+                uniqueEffect: progress.transmissionEffect || state.transmissionEffect || null,
+                trainingPointCost: state.trainingPointCost ?? progress.trainingPointCost ?? 1,
+                baseHours: state.baseHours ?? progress.baseHours ?? 4,
+                maxEfficientUses: state.maxEfficientUses ?? progress.maxEfficientUses ?? 10,
+                transmissionQuality: progress.transmissionQuality || state.quality || null
+            });
+        }
+
         for (
             const m
-            of player.training?.methods ||
-            []
+            of trainingCatalog
         ) {
             const progressUses =
                 player.training
@@ -2890,6 +2938,7 @@ ${
         <b class="${gradeClass(m.grade)}">
             (${esc(m.grade || '?')})
             ${esc(m.name)}
+            ${m.transmissionQuality ? '[' + esc(m.transmissionQuality) + ']' : ''}
         </b>
 
         <b style="color:#68bfff">
