@@ -6,7 +6,7 @@
 
 1. Core Lite v2.6 — `wuxia-rpg-core.user.js`
 2. 세션 컨트롤러 v1.7 — `wuxia-rpg-session.user.js`
-3. 통합 UI Lite v2.15 — `wuxia-rpg-ui.user.js`
+3. 통합 UI Lite v2.16 — `wuxia-rpg-ui.user.js`
 4. 대상 정보창 Lite v3.2 — `wuxia-rpg-target.user.js`
 5. 초상화 UI Lite v2.3 — `wuxia-rpg-portrait.user.js`
 6. 새 채팅 이어하기 v1.3 — `wuxia-rpg-handoff.user.js`
@@ -68,3 +68,5 @@ Loader v3.2는 자동 업데이트 URL을 유지하면서 번들 캐시 키를 �
 Core v2.6은 한 assistant 응답 안에 여러 개의 `RPGENEMY` 스냅샷이 있으면 순서대로 모두 처리한다. 따라서 자동전투가 한 답변에서 시작·종료되어도 상대창 체력이 시작값에 멈추지 않고 마지막 체력까지 갱신된다.
 
 통합 UI v2.15는 수련법 사용 횟수를 `training.methodProgress[methodId].uses`에서 우선 읽고, 없을 때만 카드의 `methods[].uses`를 사용한다. 수련 후 실제 누적 횟수와 카드 표시가 일치한다.
+
+통합 UI v2.16은 RPGSTATE의 `realmInfo` 또는 `guidance`가 부분 동기화에서 빠져도 현재 경지와 기본스탯으로 경지 정보를 복구한다. 경지 탭에 현재/다음 전투 5스탯 보정, 체력·내력 보너스, 다음 경지, 기초스탯 현재/필요 합계, 부족 수치, 돌파 방식과 장소를 표시한다.

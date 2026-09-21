@@ -5,7 +5,7 @@
     {
       "id": "core",
       "name": "무협 RPG Core Lite",
-      "version": "2.5",
+      "version": "2.6",
       "file": "wuxia-rpg-core.user.js",
       "raw": "https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-core.user.js"
     },
@@ -19,7 +19,7 @@
     {
       "id": "ui",
       "name": "무협 RPG 통합 UI Lite",
-      "version": "2.14",
+      "version": "2.16",
       "file": "wuxia-rpg-ui.user.js",
       "raw": "https://raw.githubusercontent.com/Tmddhdmlc-ux/gangho-tampermonkey/main/wuxia-rpg-ui.user.js"
     },

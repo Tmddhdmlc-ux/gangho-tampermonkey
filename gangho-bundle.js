@@ -1,7 +1,6 @@
 /* 강호기행 Runtime Bundle
  * 이 파일은 Loader가 F5 때 1회 받아 실행한다.
  * 개별 Tampermonkey 메타데이터는 제거된 실행 코드만 포함한다.
- * Build: Core 2.6 / UI 2.15
  */
 
 /* ===== wuxia-rpg-core.user.js ===== */
@@ -7174,6 +7173,49 @@ html.wuxia-rpg-logged-out
         dodge: '회피'
     };
 
+    const REALM_SEQUENCE = [
+        '삼류 초입','삼류 완숙','삼류 극',
+        '이류 초입','이류 완숙','이류 극',
+        '일류 초입','일류 완숙','일류 극',
+        '절정 초입','절정 완숙','절정 극',
+        '초절정 초입','초절정 완숙','초절정 극',
+        '화경 초입','화경 완숙','화경 극',
+        '현경 초입','현경 완숙','현경 극',
+        '생사경 초입','생사경 완숙','생사경 극',
+        '자연경 초입','자연경 완숙','자연경 극'
+    ];
+
+    const REALM_COMBAT_BONUSES = [
+        0,5,10,40,50,60,90,105,120,
+        160,180,200,260,290,320,
+        400,450,500,600,675,750,
+        900,1025,1150,1400,1600,1800
+    ];
+
+    const REALM_RESOURCE_BONUSES = [
+        [0,0],[0,0],[0,0],
+        [500,200],[650,260],[800,320],
+        [1200,450],[1450,550],[1700,650],
+        [2400,900],[2800,1100],[3200,1300],
+        [3800,1700],[4300,2000],[4800,2300],
+        [5200,2800],[6000,3300],[6800,3800],
+        [8000,4800],[9000,5600],[10000,6400],
+        [12000,8000],[13500,9500],[15000,11000],
+        [18000,13000],[21000,15500],[24000,18000]
+    ];
+
+    const REALM_STAT_REQUIREMENTS = {
+        '삼류 완숙':80,'삼류 극':105,
+        '이류 초입':130,'이류 완숙':160,'이류 극':190,
+        '일류 초입':230,'일류 완숙':270,'일류 극':310,
+        '절정 초입':370,'절정 완숙':420,'절정 극':470,
+        '초절정 초입':540,'초절정 완숙':600,'초절정 극':660,
+        '화경 초입':740,'화경 완숙':810,'화경 극':880,
+        '현경 초입':980,'현경 완숙':1060,'현경 극':1140,
+        '생사경 초입':1260,'생사경 완숙':1380,'생사경 극':1500,
+        '자연경 초입':1660,'자연경 완숙':1840,'자연경 극':2020
+    };
+
     let activeTab = 'status';
 
     let relationFilter = 'all';
@@ -9318,10 +9360,233 @@ ${
     // 경지
     // =========================================================
 
-    function renderRealm() {
-        const r =
+    function realmNumber(value) {
+        if (
+            value === null ||
+            value === undefined ||
+            value === ''
+        ) {
+            return null;
+        }
+
+        return finiteNumber(value);
+    }
+
+
+    function resolvedRealmInfo() {
+        const stored =
             player.realmInfo ||
             {};
+
+        const guidance =
+            player.guidance ||
+            {};
+
+        const currentIndex =
+            REALM_SEQUENCE.indexOf(
+                player.realm
+            );
+
+        const nextRealm =
+            stored.next ||
+            guidance.nextRealm ||
+            (
+                currentIndex >= 0
+                    ? REALM_SEQUENCE[
+                        currentIndex + 1
+                    ]
+                    : null
+            ) ||
+            '-';
+
+        const nextIndex =
+            REALM_SEQUENCE.indexOf(
+                nextRealm
+            );
+
+        const statValues =
+            CORE_STAT_KEYS.map(
+                key =>
+                    realmNumber(
+                        player.stats?.[key]
+                    )
+            );
+
+        const calculatedStatTotal =
+            statValues.every(
+                value => value !== null
+            )
+                ? statValues.reduce(
+                    (sum,value) =>
+                        sum + value,
+                    0
+                )
+                : null;
+
+        const statCurrent =
+            realmNumber(
+                guidance.statGateCurrent
+            ) ??
+            calculatedStatTotal;
+
+        const statRequired =
+            realmNumber(
+                guidance.statGateRequired
+            ) ??
+            realmNumber(
+                REALM_STAT_REQUIREMENTS[
+                    nextRealm
+                ]
+            );
+
+        const statRemaining =
+            statCurrent !== null &&
+            statRequired !== null
+                ? Math.max(
+                    0,
+                    statRequired -
+                    statCurrent
+                )
+                : null;
+
+        const currentResource =
+            currentIndex >= 0
+                ? REALM_RESOURCE_BONUSES[
+                    currentIndex
+                ]
+                : null;
+
+        const nextResource =
+            nextIndex >= 0
+                ? REALM_RESOURCE_BONUSES[
+                    nextIndex
+                ]
+                : null;
+
+        const currentMajor =
+            String(
+                player.realm ||
+                ''
+            ).split(' ')[0];
+
+        const nextMajor =
+            String(
+                nextRealm ||
+                ''
+            ).split(' ')[0];
+
+        return {
+            ...stored,
+            next: nextRealm,
+            combatBonus:
+                realmNumber(
+                    stored.combatBonus
+                ) ??
+                (
+                    currentIndex >= 0
+                        ? REALM_COMBAT_BONUSES[
+                            currentIndex
+                        ]
+                        : 0
+                ),
+            nextCombatBonus:
+                realmNumber(
+                    stored.nextCombatBonus
+                ) ??
+                (
+                    nextIndex >= 0
+                        ? REALM_COMBAT_BONUSES[
+                            nextIndex
+                        ]
+                        : 0
+                ),
+            hpRealmBonus:
+                realmNumber(
+                    stored.hpRealmBonus
+                ) ??
+                currentResource?.[0] ??
+                0,
+            qiRealmBonus:
+                realmNumber(
+                    stored.qiRealmBonus
+                ) ??
+                currentResource?.[1] ??
+                0,
+            nextHpRealmBonus:
+                realmNumber(
+                    stored.nextHpRealmBonus
+                ) ??
+                nextResource?.[0] ??
+                0,
+            nextQiRealmBonus:
+                realmNumber(
+                    stored.nextQiRealmBonus
+                ) ??
+                nextResource?.[1] ??
+                0,
+            insightChance:
+                realmNumber(
+                    stored.insightChance
+                ) ??
+                0,
+            insightText:
+                stored.insightText ||
+                (
+                    statRequired !== null
+                        ? `총 기본스탯 ${statRequired} 달성 후 의미 있는 실전·수련에서 깨달음을 판정한다.`
+                        : ''
+                ),
+            breakthroughType:
+                stored.breakthroughType ||
+                (
+                    currentMajor &&
+                    nextMajor &&
+                    currentMajor !== nextMajor
+                        ? '대경지 돌파시험'
+                        : '소경지 깨달음'
+                ),
+            breakthroughLocation:
+                stored.breakthroughLocation ||
+                (
+                    currentMajor &&
+                    nextMajor &&
+                    currentMajor !== nextMajor
+                        ? '무관·문파 등 정상 돌파 장소'
+                        : '의미 있는 실전·수련'
+                ),
+            requirements:
+                Array.isArray(
+                    stored.requirements
+                ) &&
+                stored.requirements.length
+                    ? stored.requirements
+                    : (
+                        statRequired !== null
+                            ? [
+                                `총 기본스탯 ${statRequired}`
+                            ]
+                            : []
+                    ),
+            statCurrent,
+            statRequired,
+            statRemaining
+        };
+    }
+
+
+    function renderRealm() {
+        const r =
+            resolvedRealmInfo();
+
+        const currentBonusText =
+            `근력·민첩·지능·체질·내공 각각 +${r.combatBonus}`;
+
+        const nextBonusText =
+            `근력·민첩·지능·체질·내공 각각 +${r.nextCombatBonus}`;
+
+        const gateKnown =
+            r.statCurrent !== null &&
+            r.statRequired !== null;
 
         return `
 <div class="card">
@@ -9340,19 +9605,23 @@ ${
     </b>
 
     <div class="row">
-        <span>전투 올스탯</span>
+        <span>전투 5스탯 보정</span>
         <b>
             +${esc(
-                r.combatBonus || 0
+                r.combatBonus
             )}
         </b>
+    </div>
+
+    <div class="muted">
+        ${esc(currentBonusText)}
     </div>
 
     <div class="row">
         <span>체력 보너스</span>
         <b class="hp">
             +${esc(
-                r.hpRealmBonus || 0
+                r.hpRealmBonus
             )}
         </b>
     </div>
@@ -9361,7 +9630,7 @@ ${
         <span>내력 보너스</span>
         <b class="qi">
             +${esc(
-                r.qiRealmBonus || 0
+                r.qiRealmBonus
             )}
         </b>
     </div>
@@ -9380,20 +9649,23 @@ ${
     </b>
 
     <div class="row">
-        <span>다음 전투보정</span>
+        <span>다음 전투 5스탯 보정</span>
         <b>
             +${esc(
-                r.nextCombatBonus || 0
+                r.nextCombatBonus
             )}
         </b>
+    </div>
+
+    <div class="muted">
+        ${esc(nextBonusText)}
     </div>
 
     <div class="row">
         <span>다음 체력보너스</span>
         <b class="hp">
             +${esc(
-                r.nextHpRealmBonus ||
-                0
+                r.nextHpRealmBonus
             )}
         </b>
     </div>
@@ -9402,8 +9674,7 @@ ${
         <span>다음 내력보너스</span>
         <b class="qi">
             +${esc(
-                r.nextQiRealmBonus ||
-                0
+                r.nextQiRealmBonus
             )}
         </b>
     </div>
@@ -9440,8 +9711,37 @@ ${
 <div class="card">
 
     <div class="section">
-        돌파
+        다음 돌파 조건
     </div>
+
+    ${
+        gateKnown
+            ? `
+    <div class="row">
+        <span>기초스탯 합계</span>
+        <b>${esc(r.statCurrent)} / ${esc(r.statRequired)}</b>
+    </div>
+
+    ${bar(
+        '돌파 준비도',
+        r.statCurrent,
+        r.statRequired,
+        'insight'
+    )}
+
+    <div class="row">
+        <span>남은 필요치</span>
+        <b class="${r.statRemaining > 0 ? 'infamy' : 'insight'}">
+            ${r.statRemaining > 0 ? `${esc(r.statRemaining)} 부족` : '스탯 조건 충족'}
+        </b>
+    </div>
+`
+            : `
+    <div class="muted">
+        기초스탯 정보를 받으면 현재/필요 수치를 계산합니다.
+    </div>
+`
+    }
 
     <div class="row">
         <span>방식</span>
@@ -11593,7 +11893,7 @@ ${
         </div>
 
         <div class="wx-connected">
-            ● RPG UI 연결됨 · v2.15
+            ● RPG UI 연결됨 · v2.16
         </div>
 
     </div>
@@ -12081,7 +12381,7 @@ ${
         );
 
         console.log(
-            '[무협 RPG] 통합 UI Lite v2.14 · 이벤트 모드'
+            '[무협 RPG] 통합 UI Lite v2.16 · 경지/돌파 조건 자체 복구'
         );
     }
 
@@ -17887,4 +18187,3 @@ background:rgba(89,55,128,.98)!important
     init();
 
 })();
-
