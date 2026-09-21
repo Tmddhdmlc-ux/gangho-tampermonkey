@@ -151,8 +151,9 @@
         const normalized = {...data};
         const stats =
             data.resourceStats ||
-            data.baseStats ||
+            data.growthStats ||
             data.stats ||
+            data.baseStats ||
             {};
         const constitution = finiteResource(stats.constitution);
         const innerPower = finiteResource(stats.innerPower);
@@ -160,11 +161,25 @@
         let maxHp = finiteResource(data.maxHp);
         let qi = finiteResource(data.qi);
         let maxQi = finiteResource(data.maxQi);
+        const expectedMaxHp = constitution !== null
+            ? 200 + constitution * 10 + bonus.hp
+            : null;
+        const expectedMaxQi = innerPower !== null
+            ? 100 + innerPower * 6 + bonus.qi
+            : null;
 
-        if (maxHp === null && constitution !== null) {
-            maxHp = 200 + constitution * 10 + bonus.hp;
+        if (
+            expectedMaxHp !== null &&
+            (maxHp === null || maxHp < expectedMaxHp)
+        ) {
+            const missing = maxHp === null
+                ? null
+                : expectedMaxHp - maxHp;
+            maxHp = expectedMaxHp;
             if (hp === null && String(data.status || '').includes('정상')) {
                 hp = maxHp;
+            } else if (hp !== null && missing !== null) {
+                hp = Math.min(maxHp, hp + missing);
             }
         } else if (
             maxHp !== null &&
@@ -176,10 +191,18 @@
             if (hp !== null) hp = Math.min(maxHp, hp + bonus.hp);
         }
 
-        if (maxQi === null && innerPower !== null) {
-            maxQi = 100 + innerPower * 6 + bonus.qi;
+        if (
+            expectedMaxQi !== null &&
+            (maxQi === null || maxQi < expectedMaxQi)
+        ) {
+            const missing = maxQi === null
+                ? null
+                : expectedMaxQi - maxQi;
+            maxQi = expectedMaxQi;
             if (qi === null && String(data.status || '').includes('정상')) {
                 qi = maxQi;
+            } else if (qi !== null && missing !== null) {
+                qi = Math.min(maxQi, qi + missing);
             }
         } else if (
             maxQi !== null &&

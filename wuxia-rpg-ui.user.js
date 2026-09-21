@@ -4094,8 +4094,9 @@ ${
 
             resourceStats:
                 npc.resourceStats ||
-                npc.baseStats ||
+                npc.growthStats ||
                 npc.stats ||
+                npc.baseStats ||
                 null,
 
             realmResourceApplied:
