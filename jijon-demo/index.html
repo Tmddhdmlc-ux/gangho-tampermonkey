@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#171813" />
+  <title>지존강호 — 문파경영 시뮬레이션</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">至尊</div>
+        <div>
+          <h1>지존강호</h1>
+          <p>쇠락한 문파, 세 제자와 다시 시작하는 강호</p>
+        </div>
+      </div>
+
+      <div class="resources" aria-label="문파 자원">
+        <div class="resource"><span>은전</span><strong id="silverValue">0</strong></div>
+        <div class="resource"><span>식량</span><strong id="foodValue">0</strong></div>
+        <div class="resource"><span>명성</span><strong id="fameValue">0</strong></div>
+        <div class="resource time"><span id="dayValue">1일차</span><strong id="timeValue">08:00</strong></div>
+      </div>
+
+      <div class="time-controls">
+        <button id="pauseBtn" class="control-btn" title="일시정지">Ⅱ</button>
+        <button class="control-btn speed active" data-speed="1">1×</button>
+        <button class="control-btn speed" data-speed="3">3×</button>
+        <button id="nextDayBtn" class="control-btn wide">다음 날</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="sectView" class="view active">
+        <div class="sect-layout">
+          <div class="scene-card">
+            <div class="scene-heading">
+              <div>
+                <span class="eyebrow">청운문 · 본당</span>
+                <h2>세 제자가 살아가는 작은 문파</h2>
+              </div>
+              <button id="expeditionBtn" class="primary-btn">비경 출정</button>
+            </div>
+
+            <div id="sectScene" class="sect-scene">
+              <div class="mountains m1"></div>
+              <div class="mountains m2"></div>
+              <div class="mist mist-a"></div>
+              <div class="mist mist-b"></div>
+
+              <div class="building main-hall">
+                <span class="roof"></span>
+                <span class="sign">靑雲門</span>
+              </div>
+
+              <div class="zone training-zone" data-zone="training">
+                <div class="zone-label"><strong>연무장</strong><span>수련</span></div>
+                <div class="training-rack">⚔</div>
+                <div class="training-post"></div>
+              </div>
+
+              <div class="zone work-zone" data-zone="work">
+                <div class="zone-label"><strong>작업터</strong><span>일손</span></div>
+                <div class="crates">▣ ▦</div>
+              </div>
+
+              <div class="zone rest-zone" data-zone="rest">
+                <div class="zone-label"><strong>생활채</strong><span>휴식</span></div>
+                <div class="tea-table">茶</div>
+              </div>
+
+              <div class="zone gate-zone" data-zone="gate">
+                <div class="zone-label"><strong>산문</strong><span>출정</span></div>
+                <div class="gate">門</div>
+              </div>
+
+              <div id="discipleLayer" class="disciple-layer"></div>
+              <div class="scene-hint">제자를 누르면 행동을 지정할 수 있습니다.</div>
+            </div>
+
+            <div class="scene-footer">
+              <div id="dailySummary" class="daily-summary">문파의 하루가 시작되었습니다.</div>
+              <div class="save-controls">
+                <button id="saveBtn" class="ghost-btn">저장</button>
+                <button id="loadBtn" class="ghost-btn">불러오기</button>
+                <button id="resetBtn" class="ghost-btn danger">초기화</button>
+              </div>
+            </div>
+          </div>
+
+          <aside class="side-panel">
+            <div class="panel-block">
+              <div class="panel-title-row">
+                <div>
+                  <span class="eyebrow">문하 제자</span>
+                  <h3>제자 3명</h3>
+                </div>
+                <span class="tiny-note">선택하여 명령</span>
+              </div>
+              <div id="discipleList" class="disciple-list"></div>
+            </div>
+
+            <div id="detailPanel" class="panel-block detail-panel">
+              <div class="empty-detail">
+                <span>☯</span>
+                <p>제자를 선택하면 능력과 무공,<br />현재 상태를 확인할 수 있습니다.</p>
+              </div>
+            </div>
+
+            <div class="panel-block facility-block">
+              <div class="panel-title-row">
+                <div>
+                  <span class="eyebrow">문파 복구</span>
+                  <h3>시설 정비</h3>
+                </div>
+                <span class="tiny-note">각 1회</span>
+              </div>
+              <div id="facilityList" class="facility-list"></div>
+            </div>
+
+            <div class="panel-block log-block">
+              <div class="panel-title-row">
+                <div>
+                  <span class="eyebrow">문파 기록</span>
+                  <h3>오늘의 일지</h3>
+                </div>
+              </div>
+              <div id="sectLog" class="log-list"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="battleView" class="view battle-view">
+        <div class="battle-top">
+          <div>
+            <span class="eyebrow">초급 비경 · 폐허가 된 산채</span>
+            <h2>비경 자동전투</h2>
+          </div>
+          <div class="battle-controls">
+            <button class="control-btn battle-speed active" data-battle-speed="1">1×</button>
+            <button class="control-btn battle-speed" data-battle-speed="2">2×</button>
+            <button id="skipBattleBtn" class="ghost-btn">결과까지 건너뛰기</button>
+          </div>
+        </div>
+
+        <div id="battleArena" class="battle-arena">
+          <div class="battle-bg-mountain"></div>
+          <div class="battle-ground"></div>
+          <div class="team-side allies">
+            <div class="team-label">청운문</div>
+            <div id="allyUnits" class="unit-layer"></div>
+          </div>
+          <div class="versus-mark">VS</div>
+          <div class="team-side enemies">
+            <div class="team-label">산채 잔당</div>
+            <div id="enemyUnits" class="unit-layer"></div>
+          </div>
+          <div id="battleFloaters" class="battle-floaters"></div>
+        </div>
+
+        <div class="battle-bottom">
+          <div>
+            <span class="eyebrow">전투 흐름</span>
+            <div id="battleStatus" class="battle-status">전투 준비 중...</div>
+          </div>
+          <div id="battleLog" class="battle-log"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="expeditionModal" class="modal-backdrop hidden">
+    <div class="modal expedition-modal">
+      <button class="modal-close" data-close-modal="expeditionModal">×</button>
+      <span class="eyebrow">비경 편성</span>
+      <h2>누구를 보낼 것인가?</h2>
+      <p class="modal-desc">세 제자 중 두 명을 선택하세요. 첫 번째 선택 제자가 전열을 맡습니다.</p>
+      <div id="expeditionRoster" class="expedition-roster"></div>
+      <div class="expedition-preview">
+        <div><span>전열</span><strong id="frontPreview">미선택</strong></div>
+        <div><span>후열</span><strong id="rearPreview">미선택</strong></div>
+      </div>
+      <div class="modal-actions">
+        <button class="ghost-btn" data-close-modal="expeditionModal">취소</button>
+        <button id="startExpeditionBtn" class="primary-btn" disabled>출정한다</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultModal" class="modal-backdrop hidden">
+    <div class="modal result-modal">
+      <span id="resultEyebrow" class="eyebrow">비경 결과</span>
+      <h2 id="resultTitle">승리</h2>
+      <div id="resultBody" class="result-body"></div>
+      <div class="modal-actions">
+        <button id="returnSectBtn" class="primary-btn">문파로 귀환</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="./src/game.js"></script>
+</body>
+</html>
